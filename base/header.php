@@ -28,16 +28,16 @@ $pageTitle = $pageTitle ?? ucfirst($role) . " Dashboard";
 
 <title>:: Iconic <?= $pageTitle ?></title>
 
-<link rel="icon" href="../../assets/images/favicon.ico" type="image/x-icon">
+<link rel="icon" href="../assets/images/favicon.ico" type="image/x-icon">
 
 <!-- Bootstrap -->
-<link rel="stylesheet" href="../../assets/vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="../assets/vendor/bootstrap/css/bootstrap.min.css">
 
 <!-- FontAwesome -->
-<link rel="stylesheet" href="../../assets/vendor/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet" href="../assets/vendor/font-awesome/css/font-awesome.min.css">
 
 <!-- Main CSS -->
-<link rel="stylesheet" href="../../assets/css/main.css">
+<link rel="stylesheet" href="../assets/css/main.css">
 </head>
 
 
@@ -63,7 +63,7 @@ $pageTitle = $pageTitle ?? ucfirst($role) . " Dashboard";
         <div class="navbar-right">
             <ul class="nav navbar-nav">
                 <li>
-                    <a href="../../logout.php" class="icon-menu">
+                    <a href="../logout.php" class="icon-menu">
                         <i class="fa fa-power-off"></i>
                     </a>
                 </li>
@@ -83,7 +83,7 @@ $pageTitle = $pageTitle ?? ucfirst($role) . " Dashboard";
 
     <div class="user-account text-center">
 
-        <img src="../../assets/images/user.png"
+        <img src="../assets/images/user.png"
              class="rounded-circle user-photo"
              width="70">
 
