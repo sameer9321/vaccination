@@ -4,8 +4,9 @@ session_start();
 $pageTitle = "Hospital Dashboard";
 include "../includes/db.php";
 
-if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "hospital") {
-    header("Location: ../../../index.php");
+/* Auth check */
+if (!isset($_SESSION["role"]) || strtolower((string)$_SESSION["role"]) !== "hospital") {
+    header("Location: ../index.php");
     exit;
 }
 
@@ -15,10 +16,9 @@ $hospitalId = (int)($_SESSION["hospital_id"] ?? 0);
 
 /*
   Resolve hospital_id if missing
-  Tries:
-  1) hospitals.email = users.email
-  2) hospitals.hospital_name = username
-  3) hospitals.name = username (if your column is "name")
+  We only use columns that exist:
+  - hospitals.email
+  - hospitals.hospital_name
 */
 if ($hospitalId <= 0 && $userId > 0) {
 
@@ -37,8 +37,9 @@ if ($hospitalId <= 0 && $userId > 0) {
         }
     }
 
-    if ($userEmail !== "") {
-        $stmtH = @mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE email = ? LIMIT 1");
+    /* Try match by email */
+    if ($hospitalId <= 0 && $userEmail !== "") {
+        $stmtH = mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE email = ? LIMIT 1");
         if ($stmtH) {
             mysqli_stmt_bind_param($stmtH, "s", $userEmail);
             mysqli_stmt_execute($stmtH);
@@ -49,40 +50,32 @@ if ($hospitalId <= 0 && $userId > 0) {
             if ($rowH && isset($rowH["id"])) {
                 $hospitalId = (int)$rowH["id"];
                 $_SESSION["hospital_id"] = $hospitalId;
-                if (!empty($rowH["hospital_name"])) {
-                    $_SESSION["hospital_name"] = (string)$rowH["hospital_name"];
-                }
+                $_SESSION["hospital_name"] = (string)($rowH["hospital_name"] ?? "");
             }
         }
     }
 
+    /* Fallback match by hospital_name = username */
     if ($hospitalId <= 0 && $username !== "") {
+        $stmtH2 = mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE hospital_name = ? LIMIT 1");
+        if ($stmtH2) {
+            mysqli_stmt_bind_param($stmtH2, "s", $username);
+            mysqli_stmt_execute($stmtH2);
+            $resH2 = mysqli_stmt_get_result($stmtH2);
+            $rowH2 = $resH2 ? mysqli_fetch_assoc($resH2) : null;
+            mysqli_stmt_close($stmtH2);
 
-    // Fallback: match hospital_name with username
-    $stmtH2 = mysqli_prepare(
-        $conn,
-        "SELECT id, hospital_name FROM hospitals WHERE hospital_name = ? LIMIT 1"
-    );
-
-    if ($stmtH2) {
-        mysqli_stmt_bind_param($stmtH2, "s", $username);
-        mysqli_stmt_execute($stmtH2);
-        $resH2 = mysqli_stmt_get_result($stmtH2);
-        $rowH2 = $resH2 ? mysqli_fetch_assoc($resH2) : null;
-        mysqli_stmt_close($stmtH2);
-
-        if ($rowH2 && isset($rowH2["id"])) {
-            $hospitalId = (int)$rowH2["id"];
-            $_SESSION["hospital_id"] = $hospitalId;
-            $_SESSION["hospital_name"] = (string)$rowH2["hospital_name"];
+            if ($rowH2 && isset($rowH2["id"])) {
+                $hospitalId = (int)$rowH2["id"];
+                $_SESSION["hospital_id"] = $hospitalId;
+                $_SESSION["hospital_name"] = (string)($rowH2["hospital_name"] ?? "");
+            }
         }
     }
 }
 
-}
-
 if ($hospitalId <= 0) {
-    die("Hospital account not linked. Please log out and log in again.");
+    die("Hospital account not linked. Please make sure the hospital email exists in hospitals table and matches users.email.");
 }
 
 function calc_age_text($birthDate) {
@@ -311,7 +304,7 @@ include "../base/header.php";
                 <div class="featureBody">
                     <div class="iconCircle"><i class="fa fa-pencil-square-o fa-lg"></i></div>
                     <div class="featureTitle">Update Vaccine Status</div>
-                    <div class="featureText">Mark vaccination as vaccinated or not vaccinated</div>
+                    <div class="featureText">Update status as Vaccinated or Not Vaccinated</div>
                     <a href="appointments.php" class="btn btn-primary btn-sm">Open</a>
                 </div>
             </div>
@@ -322,26 +315,15 @@ include "../base/header.php";
                 <div class="featureBody">
                     <div class="iconCircle"><i class="fa fa-calendar fa-lg"></i></div>
                     <div class="featureTitle">Appointments</div>
-                    <div class="featureText">View upcoming appointments for your hospital</div>
+                    <div class="featureText">View all upcoming appointments</div>
                     <a href="appointments.php" class="btn btn-primary btn-sm">Open</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4 col-lg-3 mb-3">
-            <div class="card featureCard">
-                <div class="featureBody">
-                    <div class="iconCircle"><i class="fa fa-file-text fa-lg"></i></div>
-                    <div class="featureTitle">Reports</div>
-                    <div class="featureText">If you upload reports later, they will show here</div>
-                    <a href="reports.php" class="btn btn-primary btn-sm">Open</a>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <!-- Notifications row -->
+    <!-- Upcoming Appointments -->
     <div class="row clearfix">
         <div class="col-lg-12 mb-3">
             <div class="notifyCard">

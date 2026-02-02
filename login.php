@@ -1,17 +1,25 @@
 <?php
 session_start();
-include 'includes/db.php';
+include "includes/db.php";
 
-// Redirect if already logged in
-if(isset($_SESSION['role'])){
-    $role = strtolower($_SESSION['role']);
-    $redirect = "dashboard/index.php"; 
-    if($role === "parent") $redirect = "dashboard/parentdashboard.php";
-    if($role === "hospital") $redirect = "dashboard/hospitalDashboard.php";
-    header("Location: $redirect");
+if (isset($_SESSION["role"])) {
+    $role = strtolower($_SESSION["role"]);
+
+    if ($role === "parent") {
+        header("Location: parentsDashboard/parentdashboard.php");
+        exit;
+    }
+
+    if ($role === "hospital") {
+        header("Location: hospitalDashboard/hospitalDashboard.php");
+        exit;
+    }
+
+    header("Location: mainadmin/index.php");
     exit;
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

@@ -1,84 +1,101 @@
 <?php
 $pageTitle = "Admin Dashboard";
 include '../base/header.php';
+include '../includes/db.php';
+
+function countRows($conn,$table,$where=""){
+    $sql = "SELECT COUNT(*) as total FROM $table $where";
+    $res = mysqli_query($conn,$sql);
+    return mysqli_fetch_assoc($res)['total'];
+}
+
+$children  = countRows($conn,"children");
+$bookings  = countRows($conn,"bookings");
+$hospitals = countRows($conn,"hospitals");
+$requests  = countRows($conn,"requests","WHERE status='pending'");
+$vaccines  = countRows($conn,"vaccines");
 ?>
- <div class="block-header">
-                <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="index-parent.php"><i class="fa fa-dashboard"></i></a></li>
-                    <li class="breadcrumb-item active">Dashboard</li>
-                </ul>
-            </div>
-<div class="row clearfix">
 
-    <!-- Child Details -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card">
-            <div class="body text-center">
-                <h5>All Child Details</h5>
-                <a href="children.php" class="btn btn-primary">View</a>
-            </div>
-        </div>
-    </div>
+<style>
+.section-title{
+    font-weight:700;
+    margin:30px 0 15px;
+}
+.menu-card{
+    border-radius:14px;
+    padding:22px;
+    text-align:center;
+    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+    transition:.25s;
+}
+.menu-card:hover{
+    transform:translateY(-6px);
+}
+.stat{
+    font-size:24px;
+    font-weight:700;
+}
+</style>
 
-    <!-- Vaccination Dates -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card">
-            <div class="body text-center">
-                <h5>Upcoming Vaccination Dates</h5>
-                <a href="vaccination_dates.php" class="btn btn-info">View</a>
-            </div>
-        </div>
-    </div>
 
-    <!-- Reports -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card">
-            <div class="body text-center">
-                <h5>Vaccination Reports</h5>
-                <a href="reports.php" class="btn btn-success">View</a>
-            </div>
-        </div>
-    </div>
+<!-- ===== Stats ===== -->
+<div class="row mb-4">
 
-    <!-- Vaccine List -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card">
-            <div class="body text-center">
-                <h5>Vaccine Availability</h5>
-                <a href="vaccines.php" class="btn btn-warning">View</a>
-            </div>
-        </div>
-    </div>
+<?php
+$stats = [
+["Children",$children,"primary"],
+["Bookings",$bookings,"success"],
+["Hospitals",$hospitals,"warning"],
+["Pending Requests",$requests,"danger"],
+["Vaccines",$vaccines,"info"]
+];
 
-    <!-- Parent Requests -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card">
-            <div class="body text-center">
-                <h5>Parent Requests</h5>
-                <a href="requests.php" class="btn btn-danger">Approve / Reject</a>
-            </div>
-        </div>
-    </div>
+foreach($stats as $s){
+?>
 
-    <!-- Hospitals -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card">
-            <div class="body text-center">
-                <h5>Manage Hospitals</h5>
-                <a href="hospitals.php" class="btn btn-secondary">Manage</a>
-            </div>
-        </div>
+<div class="col-md-3">
+    <div class="menu-card bg-<?php echo $s[2]; ?> text-white">
+        <div class="stat"><?php echo $s[1]; ?></div>
+        <div><?php echo $s[0]; ?></div>
     </div>
+</div>
 
-    <!-- Bookings -->
-    <div class="col-lg-3 col-md-6">
-        <div class="card">
-            <div class="body text-center">
-                <h5>Booking Details</h5>
-                <a href="bookings.php" class="btn btn-dark">View</a>
-            </div>
-        </div>
+<?php } ?>
+</div>
+
+
+
+<!-- ===== Management Section ===== -->
+<h5 class="section-title">Management</h5>
+
+<div class="row g-4">
+
+<?php
+$cards = [
+
+["All Child Details","children.php","fa-child"],
+["Vaccination Dates","vaccination_dates.php","fa-calendar"],
+["Vaccination Reports","reports.php","fa-file-text"],
+["Vaccine List","vaccines.php","fa-medkit"],
+["Parent Requests","requests.php","fa-envelope"],
+["Add Hospital","addHospital.php","fa-plus"],
+["Hospital List","hospitalslist.php","fa-hospital-o"],
+["Booking Details","bookings.php","fa-book"]
+
+];
+
+foreach($cards as $c){
+?>
+
+<div class="col-md-3">
+    <div class="menu-card">
+        <i class="fa <?php echo $c[2]; ?> fa-2x mb-2"></i>
+        <h6><?php echo $c[0]; ?></h6>
+        <a href="<?php echo $c[1]; ?>" class="btn btn-primary btn-sm">Open</a>
     </div>
+</div>
+
+<?php } ?>
 
 </div>
 

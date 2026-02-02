@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 /* =========================
    AUTH CHECK
@@ -98,20 +100,16 @@ $pageTitle = $pageTitle ?? ucfirst($role) . " Dashboard";
         <ul class="metismenu">
 
         <?php if($role == 'admin'): ?>
-
-            <li><a href="admin_dashboard.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
             <li><a href="users.php"><i class="fa fa-users"></i> All Users</a></li>
             <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
 
         <?php elseif($role == 'hospital'): ?>
 
-            <li><a href="hospitalDashboard.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
             <li><a href="updateVaccineStatus.php"><i class="fa fa-pencil-square-o"></i> Update Vaccine Status</a></li>
             <li><a href="appointments.php"><i class="fa fa-calendar"></i> Appointments</a></li>
 
         <?php elseif($role == 'parent'): ?>
 
-            <li><a href="index-parent.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
             <li><a href="childDetails.php"><i class="fa fa-user"></i> Child Details</a></li>
             <li><a href="vaccinationDates.php"><i class="fa fa-calendar"></i> Vaccination Dates</a></li>
             <li><a href="bookHospital.php"><i class="fa fa-hospital-o"></i> Book Hospital</a></li>
