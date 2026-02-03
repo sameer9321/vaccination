@@ -48,7 +48,7 @@ if (isset($_SESSION["role"])) {
         <i data-feather="home"></i> Hospital
       </button>
     </div>
-
+    
     <div class="flex justify-center mb-6 border-b border-gray-200 relative">
       <button id="loginToggle" class="toggle-btn px-6 py-2 font-semibold border-b-2 border-blue-500 text-blue-500 transition relative z-10">Login</button>
       <button id="registerToggle" class="toggle-btn px-6 py-2 font-semibold text-gray-400 transition relative z-10">Register</button>
