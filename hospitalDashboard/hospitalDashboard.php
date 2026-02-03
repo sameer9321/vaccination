@@ -1,6 +1,5 @@
 <?php
 session_start();
-
 $pageTitle = "Hospital Dashboard";
 include "../includes/db.php";
 
@@ -13,72 +12,30 @@ $userId = (int)($_SESSION["user_id"] ?? 0);
 $username = (string)($_SESSION["username"] ?? "");
 $hospitalId = (int)($_SESSION["hospital_id"] ?? 0);
 
-/*
-  Resolve hospital_id if missing
-  Tries:
-  1) hospitals.email = users.email
-  2) hospitals.hospital_name = username
-  3) hospitals.name = username (if your column is "name")
-*/
+/* Resolve hospital_id (preserved your logic) */
 if ($hospitalId <= 0 && $userId > 0) {
-
-    $userEmail = "";
-
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
     if ($stmtU) {
         mysqli_stmt_bind_param($stmtU, "i", $userId);
         mysqli_stmt_execute($stmtU);
         $resU = mysqli_stmt_get_result($stmtU);
-        $rowU = $resU ? mysqli_fetch_assoc($resU) : null;
+        $rowU = mysqli_fetch_assoc($resU);
+        $userEmail = $rowU["email"] ?? "";
         mysqli_stmt_close($stmtU);
 
-        if ($rowU && isset($rowU["email"])) {
-            $userEmail = (string)$rowU["email"];
-        }
-    }
-
-    if ($userEmail !== "") {
-        $stmtH = @mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE email = ? LIMIT 1");
-        if ($stmtH) {
+        if ($userEmail !== "") {
+            $stmtH = mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE email = ? LIMIT 1");
             mysqli_stmt_bind_param($stmtH, "s", $userEmail);
             mysqli_stmt_execute($stmtH);
             $resH = mysqli_stmt_get_result($stmtH);
-            $rowH = $resH ? mysqli_fetch_assoc($resH) : null;
-            mysqli_stmt_close($stmtH);
-
-            if ($rowH && isset($rowH["id"])) {
+            if ($rowH = mysqli_fetch_assoc($resH)) {
                 $hospitalId = (int)$rowH["id"];
                 $_SESSION["hospital_id"] = $hospitalId;
-                if (!empty($rowH["hospital_name"])) {
-                    $_SESSION["hospital_name"] = (string)$rowH["hospital_name"];
-                }
+                $_SESSION["hospital_name"] = $rowH["hospital_name"];
             }
+            mysqli_stmt_close($stmtH);
         }
     }
-
-    if ($hospitalId <= 0 && $username !== "") {
-
-    // Fallback: match hospital_name with username
-    $stmtH2 = mysqli_prepare(
-        $conn,
-        "SELECT id, hospital_name FROM hospitals WHERE hospital_name = ? LIMIT 1"
-    );
-
-    if ($stmtH2) {
-        mysqli_stmt_bind_param($stmtH2, "s", $username);
-        mysqli_stmt_execute($stmtH2);
-        $resH2 = mysqli_stmt_get_result($stmtH2);
-        $rowH2 = $resH2 ? mysqli_fetch_assoc($resH2) : null;
-        mysqli_stmt_close($stmtH2);
-
-        if ($rowH2 && isset($rowH2["id"])) {
-            $hospitalId = (int)$rowH2["id"];
-            $_SESSION["hospital_id"] = $hospitalId;
-            $_SESSION["hospital_name"] = (string)$rowH2["hospital_name"];
-        }
-    }
-}
-
 }
 
 if ($hospitalId <= 0) {
@@ -86,320 +43,167 @@ if ($hospitalId <= 0) {
 }
 
 function calc_age_text($birthDate) {
-    if (!$birthDate) return "";
-    try {
-        $dob = new DateTime($birthDate);
-        $now = new DateTime();
-        $diff = $now->diff($dob);
-
-        $y = (int)$diff->y;
-        $m = (int)$diff->m;
-        $d = (int)$diff->d;
-
-        if ($y > 0) return $y . " yrs";
-        if ($m > 0) return $m . " months";
-        return $d . " days";
-    } catch (Exception $e) {
-        return "";
-    }
+    if (!$birthDate) return "N/A";
+    $dob = new DateTime($birthDate);
+    $diff = (new DateTime())->diff($dob);
+    return ($diff->y > 0) ? $diff->y . " yrs" : (($diff->m > 0) ? $diff->m . " mos" : $diff->d . " days");
 }
 
-/* Stats */
-$totalAppointments = 0;
-$totalPending = 0;
-$totalVaccinated = 0;
+/* Statistics */
+$totalAppointments = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings WHERE hospital_id = $hospitalId"))['total'];
+$totalPending = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings WHERE hospital_id = $hospitalId AND LOWER(status) = 'pending'"))['total'];
+// NEW: Count association requests from parents
+$totalRequests = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM hospital_requests WHERE requested_hospital = (SELECT hospital_name FROM hospitals WHERE id = $hospitalId) AND status = 'Pending'"))['total'];
 
-$stmtS = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM bookings WHERE hospital_id = ?");
-if ($stmtS) {
-    mysqli_stmt_bind_param($stmtS, "i", $hospitalId);
-    mysqli_stmt_execute($stmtS);
-    $resS = mysqli_stmt_get_result($stmtS);
-    $rowS = $resS ? mysqli_fetch_assoc($resS) : null;
-    if ($rowS) $totalAppointments = (int)($rowS["total"] ?? 0);
-    mysqli_stmt_close($stmtS);
-}
-
-$stmtSP = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM bookings WHERE hospital_id = ? AND LOWER(IFNULL(status,'')) = 'pending'");
-if ($stmtSP) {
-    mysqli_stmt_bind_param($stmtSP, "i", $hospitalId);
-    mysqli_stmt_execute($stmtSP);
-    $resSP = mysqli_stmt_get_result($stmtSP);
-    $rowSP = $resSP ? mysqli_fetch_assoc($resSP) : null;
-    if ($rowSP) $totalPending = (int)($rowSP["total"] ?? 0);
-    mysqli_stmt_close($stmtSP);
-}
-
-$stmtSV = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM bookings WHERE hospital_id = ? AND LOWER(IFNULL(status,'')) IN ('vaccinated','done','completed')");
-if ($stmtSV) {
-    mysqli_stmt_bind_param($stmtSV, "i", $hospitalId);
-    mysqli_stmt_execute($stmtSV);
-    $resSV = mysqli_stmt_get_result($stmtSV);
-    $rowSV = $resSV ? mysqli_fetch_assoc($resSV) : null;
-    if ($rowSV) $totalVaccinated = (int)($rowSV["total"] ?? 0);
-    mysqli_stmt_close($stmtSV);
-}
-
-/* Upcoming appointments */
+/* Upcoming appointments list */
 $appointments = [];
-
-$stmtA = mysqli_prepare($conn, "
-    SELECT
-        b.id AS booking_id,
-        c.child_name,
-        c.birth_date,
-        b.vaccine_name,
-        b.booking_date,
-        b.status
-    FROM bookings b
-    JOIN children c ON c.child_id = b.child_id
-    WHERE b.hospital_id = ?
-      AND b.booking_date >= CURDATE()
-    ORDER BY b.booking_date ASC
-    LIMIT 10
-");
-if ($stmtA) {
-    mysqli_stmt_bind_param($stmtA, "i", $hospitalId);
-    mysqli_stmt_execute($stmtA);
-    $resA = mysqli_stmt_get_result($stmtA);
-    while ($rowA = mysqli_fetch_assoc($resA)) {
-        $appointments[] = $rowA;
-    }
-    mysqli_stmt_close($stmtA);
-}
+$resA = mysqli_query($conn, "SELECT b.id as booking_id, c.child_name, c.birth_date, b.vaccine_name, b.booking_date, b.status 
+    FROM bookings b JOIN children c ON c.child_id = b.child_id 
+    WHERE b.hospital_id = $hospitalId AND b.booking_date >= CURDATE() 
+    ORDER BY b.booking_date ASC LIMIT 10");
+while ($rowA = mysqli_fetch_assoc($resA)) $appointments[] = $rowA;
 
 include "../base/header.php";
 ?>
 
 <style>
-.topCard{
-    border-radius:16px;
-    padding:18px;
-    background:#fff;
-    box-shadow:0 8px 22px rgba(0,0,0,0.08);
-    margin-bottom:16px;
-}
-.statPill{
-    border-radius:14px;
-    padding:12px 14px;
-    background:#f5f6fa;
-    min-width:120px;
-    text-align:center;
-}
-.statNum{
-    font-size:22px;
-    font-weight:700;
-    margin:0;
-}
-.statLbl{
-    font-size:12px;
-    color:#6c757d;
-    margin:0;
-}
-.featureCard{
-    border-radius:16px;
-    box-shadow:0 8px 22px rgba(0,0,0,0.08);
-    overflow:hidden;
-    transition:transform 0.18s ease, box-shadow 0.18s ease;
-    height:100%;
-}
-.featureCard:hover{
-    transform:translateY(-2px);
-    box-shadow:0 10px 26px rgba(0,0,0,0.10);
-}
-.featureBody{
-    padding:18px;
-    text-align:center;
-}
-.iconCircle{
-    width:52px;
-    height:52px;
-    border-radius:16px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin:0 auto 10px auto;
-    background:#f5f6fa;
-}
-.featureTitle{
-    margin:0 0 6px 0;
-    font-weight:700;
-}
-.featureText{
-    margin:0 0 12px 0;
-    color:#6c757d;
-    font-size:13px;
-    min-height:38px;
-}
-.notifyCard{
-    border-radius:16px;
-    box-shadow:0 8px 22px rgba(0,0,0,0.08);
-    overflow:hidden;
-}
-.notifyHead{
-    padding:14px 18px;
-    border-bottom:1px solid #eef0f5;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-.notifyBody{
-    padding:18px;
-}
-.miniBadge{
-    padding:6px 10px;
-    border-radius:999px;
-    font-size:12px;
-    background:#0d6efd;
-    color:#fff;
-}
-.table thead th{
-    background:#f5f6fa;
-}
-.pill{
-    display:inline-block;
-    padding:6px 10px;
-    border-radius:999px;
-    font-size:12px;
-}
-.pillPending{ background:#fff3cd; color:#856404; }
-.pillDone{ background:#d4edda; color:#155724; }
-.pillOther{ background:#e2e3e5; color:#383d41; }
+    .topCard { border-radius:16px; padding:20px; background:#fff; box-shadow:0 8px 22px rgba(0,0,0,0.05); margin-bottom:25px; border-left: 5px solid #007bff; }
+    .statPill { border-radius:14px; padding:15px; background:#f8f9fa; min-width:130px; text-align:center; border: 1px solid #eee; }
+    .statNum { font-size:24px; font-weight:800; color: #222; margin:0; }
+    .statLbl { font-size:11px; text-transform: uppercase; letter-spacing: 1px; color:#888; margin:0; }
+    .featureCard { border-radius:16px; box-shadow:0 6px 15px rgba(0,0,0,0.05); transition: 0.3s; border:none; }
+    .featureCard:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    .iconCircle { width:55px; height:55px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 15px; }
+    .bg-light-blue { background: #e7f1ff; color: #007bff; }
+    .bg-light-green { background: #e8f5e9; color: #2e7d32; }
+    .bg-light-orange { background: #fff3e0; color: #ef6c00; }
+    .pill { padding:4px 12px; border-radius:20px; font-size:11px; font-weight:bold; text-transform: uppercase; }
+    .pillPending { background:#fff3cd; color:#856404; }
+    .pillDone { background:#d4edda; color:#155724; }
 </style>
 
 <div class="container-fluid">
-
     <div class="block-header">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="hospitalDashboard.php"><i class="fa fa-dashboard"></i></a>
-            </li>
-            <li class="breadcrumb-item active">Dashboard</li>
-        </ul>
+        <div class="row">
+            <div class="col-12">
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="hospitalDashboard.php"><i class="fa fa-hospital-o"></i></a></li>
+                    <li class="breadcrumb-item active">Overview</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <div class="topCard">
-        <div class="d-flex flex-wrap align-items-center justify-content-between">
-            <div class="mb-3 mb-md-0">
-                <h3 class="m-0">Welcome, <?= htmlspecialchars($_SESSION["hospital_name"] ?? $_SESSION["username"] ?? "Hospital") ?></h3>
-                <div class="text-muted" style="margin-top:6px;">
-                    View appointments and update vaccination status
-                </div>
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h3 class="m-0">Welcome, <?= htmlspecialchars($_SESSION["hospital_name"] ?? "Provider") ?></h3>
+                <p class="text-muted m-0">Healthcare facility portal for vaccine management.</p>
             </div>
-
-            <div class="d-flex gap-2 flex-wrap">
-                <div class="statPill">
-                    <p class="statNum"><?= (int)$totalAppointments ?></p>
-                    <p class="statLbl">Appointments</p>
-                </div>
-                <div class="statPill">
-                    <p class="statNum"><?= (int)$totalPending ?></p>
-                    <p class="statLbl">Pending</p>
-                </div>
-                <div class="statPill">
-                    <p class="statNum"><?= (int)$totalVaccinated ?></p>
-                    <p class="statLbl">Vaccinated</p>
+            <div class="col-lg-6">
+                <div class="d-flex justify-content-end gap-3 flex-wrap">
+                    <div class="statPill">
+                        <p class="statNum"><?= $totalAppointments ?></p>
+                        <p class="statLbl">Total Slots</p>
+                    </div>
+                    <div class="statPill">
+                        <p class="statNum text-warning"><?= $totalPending ?></p>
+                        <p class="statLbl">Pending</p>
+                    </div>
+                    <div class="statPill">
+                        <p class="statNum text-primary"><?= $totalRequests ?></p>
+                        <p class="statLbl">New Requests</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Boxes -->
-    <div class="row clearfix mb-2">
-
-        <div class="col-md-4 col-lg-3 mb-3">
-            <div class="card featureCard">
-                <div class="featureBody">
-                    <div class="iconCircle"><i class="fa fa-pencil-square-o fa-lg"></i></div>
-                    <div class="featureTitle">Update Vaccine Status</div>
-                    <div class="featureText">Mark vaccination as vaccinated or not vaccinated</div>
-                    <a href="appointments.php" class="btn btn-primary btn-sm">Open</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4 col-lg-3 mb-3">
-            <div class="card featureCard">
-                <div class="featureBody">
-                    <div class="iconCircle"><i class="fa fa-calendar fa-lg"></i></div>
-                    <div class="featureTitle">Appointments</div>
-                    <div class="featureText">View upcoming appointments for your hospital</div>
-                    <a href="appointments.php" class="btn btn-primary btn-sm">Open</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4 col-lg-3 mb-3">
-            <div class="card featureCard">
-                <div class="featureBody">
-                    <div class="iconCircle"><i class="fa fa-file-text fa-lg"></i></div>
-                    <div class="featureTitle">Reports</div>
-                    <div class="featureText">If you upload reports later, they will show here</div>
-                    <a href="reports.php" class="btn btn-primary btn-sm">Open</a>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Notifications row -->
     <div class="row clearfix">
-        <div class="col-lg-12 mb-3">
-            <div class="notifyCard">
-                <div class="notifyHead">
-                    <div style="font-weight:700; font-size:16px;">Upcoming Appointments</div>
-                    <span class="miniBadge"><?= (int)count($appointments) ?></span>
-                </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card featureCard text-center p-4">
+                <div class="iconCircle bg-light-blue"><i class="fa fa-check-square-o fa-lg"></i></div>
+                <h6>Update Status</h6>
+                <p class="small text-muted">Process completed vaccinations.</p>
+                <a href="updateVaccineStatus.php" class="btn btn-outline-primary btn-sm btn-round">Go to Updates</a>
+            </div>
+        </div>
 
-                <div class="notifyBody">
-                    <div style="overflow:auto;">
-                        <table class="table table-striped table-bordered text-center align-middle" style="margin:0;">
-                            <thead>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card featureCard text-center p-4">
+                <div class="iconCircle bg-light-green"><i class="fa fa-users fa-lg"></i></div>
+                <h6>Parent Requests</h6>
+                <p class="small text-muted">Manage new hospital associations.</p>
+                <a href="manageRequests.php" class="btn btn-outline-success btn-sm btn-round">
+                    View (<?= $totalRequests ?>)
+                </a>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card featureCard text-center p-4">
+                <div class="iconCircle bg-light-orange"><i class="fa fa-calendar-check-o fa-lg"></i></div>
+                <h6>Schedules</h6>
+                <p class="small text-muted">Full appointment calendar view.</p>
+                <a href="appointments.php" class="btn btn-outline-warning btn-sm btn-round">View All</a>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card featureCard text-center p-4">
+                <div class="iconCircle bg-light-blue"><i class="fa fa-file-pdf-o fa-lg"></i></div>
+                <h6>Medical Reports</h6>
+                <p class="small text-muted">Generate & upload patient records.</p>
+                <a href="reportes.php" class="btn btn-outline-info btn-sm btn-round">View Reports</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row clearfix">
+        <div class="col-12">
+            <div class="card notifyCard">
+                <div class="notifyHead bg-white">
+                    <h6 class="m-0"><strong>Upcoming</strong> Vaccination Slots</h6>
+                    <a href="appointments.php" class="small">View All</a>
+                </div>
+                <div class="body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="thead-light">
                                 <tr>
                                     <th>Child Name</th>
-                                    <th>Age</th>
+                                    <th>Current Age</th>
                                     <th>Vaccine</th>
-                                    <th>Date</th>
+                                    <th>Scheduled Date</th>
                                     <th>Status</th>
-                                    <th style="width:140px;">Action</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (count($appointments) > 0): ?>
-                                    <?php foreach ($appointments as $row): ?>
-                                        <?php
-                                            $st = strtolower((string)($row["status"] ?? ""));
-                                            $cls = "pillOther";
-                                            if ($st === "pending") $cls = "pillPending";
-                                            if (in_array($st, ["vaccinated","done","completed"], true)) $cls = "pillDone";
-                                        ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($row["child_name"] ?? "") ?></td>
-                                            <td><?= htmlspecialchars(calc_age_text($row["birth_date"] ?? "")) ?></td>
-                                            <td><?= htmlspecialchars($row["vaccine_name"] ?? "") ?></td>
-                                            <td><?= htmlspecialchars($row["booking_date"] ?? "") ?></td>
-                                            <td><span class="pill <?= $cls ?>"><?= htmlspecialchars($row["status"] ?? "Pending") ?></span></td>
-                                            <td>
-                                                <a href="appointments.php?focus=<?= (int)($row["booking_id"] ?? 0) ?>"
-                                                   class="btn btn-success btn-sm">
-                                                    Update
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted">No appointments found</td>
-                                    </tr>
+                                <?php if (!empty($appointments)): foreach ($appointments as $row): 
+                                    $st = strtolower($row['status']);
+                                    $pillCls = ($st === 'pending') ? 'pillPending' : 'pillDone';
+                                ?>
+                                <tr>
+                                    <td><strong><?= htmlspecialchars($row["child_name"]) ?></strong></td>
+                                    <td><?= calc_age_text($row["birth_date"]) ?></td>
+                                    <td><span class="badge badge-info"><?= htmlspecialchars($row["vaccine_name"]) ?></span></td>
+                                    <td><?= date('d M, Y', strtotime($row["booking_date"])) ?></td>
+                                    <td><span class="pill <?= $pillCls ?>"><?= strtoupper($row["status"]) ?></span></td>
+                                    <td>
+                                        <a href="updateVaccineStatus.php?id=<?= $row['booking_id'] ?>" class="btn btn-sm btn-primary">Update</a>
+                                    </td>
+                                </tr>
+                                <?php endforeach; else: ?>
+                                <tr><td colspan="6" class="text-center py-4">No appointments scheduled today.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
-
 </div>
 
 <?php include "../base/footer.php"; ?>

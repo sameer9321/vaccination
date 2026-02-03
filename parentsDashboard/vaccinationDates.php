@@ -1,38 +1,35 @@
 <?php
 session_start();
-
 $pageTitle = "Vaccination Dates";
 include "../includes/db.php";
 
+// Access Control
 if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     header("Location: ../../../index.php");
     exit;
 }
 
-/* parent_id from session (already fixed earlier) */
+// Parent linkage check
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
-
 if ($parentId <= 0) {
-    die("Parent not linked. Please log out and log in again.");
+    die("Parent profile not found. Please log in again.");
 }
 
-/*
-  Fetch upcoming vaccinations
+/* Fetch upcoming vaccinations. 
+   Includes Hospital Name from 'hospitals' and Child Name from 'children'
 */
 $vaccinations = [];
-
 $stmt = mysqli_prepare($conn, "
-    SELECT
-        c.child_name,
-        b.vaccine_name,
-        b.booking_date,
-        b.status,
-        h.hospital_name
-    FROM bookings b
-    JOIN children c ON c.child_id = b.child_id
-    LEFT JOIN hospitals h ON h.id = b.hospital_id
-    WHERE c.parent_id = ?
-      AND b.booking_date >= CURDATE()
+    SELECT 
+        c.child_name, 
+        b.vaccine_name, 
+        b.booking_date, 
+        b.status, 
+        h.hospital_name 
+    FROM bookings b 
+    JOIN children c ON c.child_id = b.child_id 
+    LEFT JOIN hospitals h ON h.id = b.hospital_id 
+    WHERE c.parent_id = ? AND b.booking_date >= CURDATE() 
     ORDER BY b.booking_date ASC
 ");
 
@@ -49,94 +46,81 @@ if ($stmt) {
 include "../base/header.php";
 ?>
 
-<style>
-.vacc_card{
-    border-radius:14px;
-    box-shadow:0 6px 18px rgba(0,0,0,0.08);
-    padding:22px;
-    background:#fff;
-}
-.table thead th{
-    background:#f5f6fa;
-}
-.badge-status{
-    padding:6px 10px;
-    border-radius:20px;
-    font-size:12px;
-}
-.badge-pending{ background:#fff3cd; color:#856404; }
-.badge-done{ background:#d4edda; color:#155724; }
-.badge-other{ background:#e2e3e5; color:#383d41; }
-</style>
-
 <div class="container-fluid">
     <div class="block-header">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="parentdashboard.php"><i class="fa fa-dashboard"></i></a>
-            </li>
-            <li class="breadcrumb-item active">Vaccination Dates</li>
-        </ul>
+        <div class="row">
+            <div class="col-lg-7 col-md-6 col-sm-12">
+                <h2>Vaccination Schedule</h2>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="parentdashboard.php"><i class="fa fa-dashboard"></i></a></li>
+                    <li class="breadcrumb-item active">Upcoming Dates</li>
+                </ul>
+            </div>
+            <div class="col-lg-5 col-md-6 col-sm-12 text-right">
+                <a href="bookHospital.php" class="btn btn-sm btn-primary">Book New Appointment</a>
+            </div>
+        </div>
     </div>
 
-    <div class="card vacc_card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h4 class="m-0">Upcoming Vaccinations</h4>
-                <p class="text-muted m-0">
-                    Vaccination schedules for your children
-                </p>
+    <div class="row clearfix">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="card">
+                <div class="header">
+                    <h2><strong>Upcoming</strong> Vaccinations <small>Notification of future dates for your children</small></h2>
+                </div>
+                <div class="body">
+                    <div class="table-responsive">
+                        <table class="table table-hover m-b-0 text-center">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Child Name</th>
+                                    <th>Vaccine Name</th>
+                                    <th>Hospital</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (count($vaccinations) > 0): ?>
+                                    <?php $i = 1; foreach ($vaccinations as $v): ?>
+                                        <?php
+                                            $status = strtolower($v["status"] ?? "pending");
+                                            $statusClass = "badge-warning"; // Default for Pending
+                                            if (in_array($status, ["done", "completed", "vaccinated"])) {
+                                                $statusClass = "badge-success";
+                                            } elseif ($status == "cancelled" || $status == "rejected") {
+                                                $statusClass = "badge-danger";
+                                            }
+                                        ?>
+                                        <tr>
+                                            <td><?= $i++ ?></td>
+                                            <td><strong><?= htmlspecialchars($v["child_name"]) ?></strong></td>
+                                            <td><span class="badge bg-blue"><?= htmlspecialchars($v["vaccine_name"]) ?></span></td>
+                                            <td><i class="fa fa-hospital-o me-1"></i> <?= htmlspecialchars($v["hospital_name"] ?? "Not Assigned") ?></td>
+                                            <td><span class="text-primary fw-bold"><?= date('d M, Y', strtotime($v["booking_date"])) ?></span></td>
+                                            <td>
+                                                <span class="badge <?= $statusClass ?>">
+                                                    <?= strtoupper($v["status"] ?? "PENDING") ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="6" class="py-4">
+                                            <div class="text-muted">
+                                                <i class="fa fa-calendar-times-o fa-3x mb-3"></i><br>
+                                                No upcoming vaccinations found.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <span class="badge bg-primary">
-                Total: <?= count($vaccinations) ?>
-            </span>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover text-center align-middle">
-                <thead>
-                    <tr>
-                        <th style="width:70px;">#</th>
-                        <th>Child Name</th>
-                        <th>Vaccine</th>
-                        <th>Hospital</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-
-                <?php if (count($vaccinations) > 0): ?>
-                    <?php $i = 1; foreach ($vaccinations as $v): ?>
-                        <?php
-                            $status = strtolower($v["status"] ?? "");
-                            $badge = "badge-other";
-                            if ($status === "pending") $badge = "badge-pending";
-                            if (in_array($status, ["done","completed","vaccinated"])) $badge = "badge-done";
-                        ?>
-                        <tr>
-                            <td><?= $i++ ?></td>
-                            <td><?= htmlspecialchars($v["child_name"] ?? "") ?></td>
-                            <td><?= htmlspecialchars($v["vaccine_name"] ?? "") ?></td>
-                            <td><?= htmlspecialchars($v["hospital_name"] ?? "—") ?></td>
-                            <td><?= htmlspecialchars($v["booking_date"] ?? "") ?></td>
-                            <td>
-                                <span class="badge-status <?= $badge ?>">
-                                    <?= htmlspecialchars($v["status"] ?? "Pending") ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="6" class="text-muted">
-                            No upcoming vaccinations found.
-                        </td>
-                    </tr>
-                <?php endif; ?>
-
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
