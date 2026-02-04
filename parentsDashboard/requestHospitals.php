@@ -9,9 +9,9 @@ if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     exit;
 }
 
-$userId = (int)($_SESSION["user_id"] ?? 0);
-$username = (string)($_SESSION["username"] ?? "");
-$parentId = (int)($_SESSION["parent_id"] ?? 0);
+$userId = (int) ($_SESSION["user_id"] ?? 0);
+$username = (string) ($_SESSION["username"] ?? "");
+$parentId = (int) ($_SESSION["parent_id"] ?? 0);
 
 /* Resolve parentId if missing */
 if ($parentId <= 0 && $userId > 0) {
@@ -28,7 +28,7 @@ if ($parentId <= 0 && $userId > 0) {
         $resP = mysqli_stmt_get_result($stmtP);
         $rowP = mysqli_fetch_assoc($resP);
         if ($rowP) {
-            $parentId = (int)$rowP["parent_id"];
+            $parentId = (int) $rowP["parent_id"];
             $_SESSION["parent_id"] = $parentId;
         }
     }
@@ -40,34 +40,45 @@ if ($parentId <= 0) {
 
 /* Delete request logic */
 if (isset($_GET["delete"])) {
-    $deleteId = (int)$_GET["delete"];
+    $deleteId = (int) $_GET["delete"];
     $stmtDel = mysqli_prepare($conn, "DELETE FROM hospital_requests WHERE id = ? AND parent_id = ?");
     mysqli_stmt_bind_param($stmtDel, "ii", $deleteId, $parentId);
     mysqli_stmt_execute($stmtDel);
     mysqli_stmt_close($stmtDel);
-    header("Location: requestHospital.php?deleted=1");
+    header("Location: requestHospitals.php?deleted=1");
     exit;
 }
 
 /* Submit request logic */
+$success = false;
+
 if (isset($_POST["submit_request"])) {
-    $childId = (int)$_POST["child_id"];
+    $childId = (int) $_POST["child_id"];
     $requestedHospital = trim($_POST["requested_hospital"]);
 
     if ($childId > 0 && !empty($requestedHospital)) {
         $status = "Pending";
-        $stmtAdd = mysqli_prepare($conn, "INSERT INTO hospital_requests (parent_id, child_id, requested_hospital, status) VALUES (?, ?, ?, ?)");
+
+        $stmtAdd = mysqli_prepare(
+            $conn,
+            "INSERT INTO hospital_requests (parent_id, child_id, requested_hospital, status)
+             VALUES (?, ?, ?, ?)"
+        );
         mysqli_stmt_bind_param($stmtAdd, "iiss", $parentId, $childId, $requestedHospital, $status);
         mysqli_stmt_execute($stmtAdd);
-        header("Location: requestHospital.php?sent=1");
-        exit;
+        mysqli_stmt_close($stmtAdd);
+
+        // success flag (NO REDIRECT)
+        $success = true;
     }
 }
+
 
 /* Fetch Children */
 $children = [];
 $resC = mysqli_query($conn, "SELECT child_id, child_name FROM children WHERE parent_id = $parentId ORDER BY child_name ASC");
-while($rowC = mysqli_fetch_assoc($resC)) $children[] = $rowC;
+while ($rowC = mysqli_fetch_assoc($resC))
+    $children[] = $rowC;
 
 /* Fetch Hospitals (Optional: If you want a dropdown instead of text input) */
 $hospitalList = mysqli_query($conn, "SELECT hospital_name FROM hospitals ORDER BY hospital_name ASC");
@@ -75,7 +86,8 @@ $hospitalList = mysqli_query($conn, "SELECT hospital_name FROM hospitals ORDER B
 /* Fetch Requests */
 $requests = [];
 $resR = mysqli_query($conn, "SELECT r.*, c.child_name FROM hospital_requests r JOIN children c ON c.child_id = r.child_id WHERE r.parent_id = $parentId ORDER BY r.id DESC");
-while($rowR = mysqli_fetch_assoc($resR)) $requests[] = $rowR;
+while ($rowR = mysqli_fetch_assoc($resR))
+    $requests[] = $rowR;
 
 include "../base/header.php";
 ?>
@@ -86,7 +98,8 @@ include "../base/header.php";
             <div class="col-lg-7 col-md-6 col-sm-12">
                 <h2>Hospital Association <small>Request to link your child to a specific hospital</small></h2>
                 <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="parentdashboard.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="parentdashboard.php"><i class="fa fa-dashboard"></i>
+                            Dashboard</a></li>
                     <li class="breadcrumb-item active">Hospital Requests</li>
                 </ul>
             </div>
@@ -103,10 +116,12 @@ include "../base/header.php";
                     <h2><strong>New</strong> Request</h2>
                 </div>
                 <div class="body">
-                    <?php if (isset($_GET["sent"])): ?>
+                    <?php if (!empty($success)): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <strong>Success!</strong> Your request has been sent.
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+                            <button type="button" class="close" data-dismiss="alert">
+                                <span>&times;</span>
+                            </button>
                         </div>
                     <?php endif; ?>
 
@@ -120,10 +135,11 @@ include "../base/header.php";
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
+
                         <div class="form-group mt-3">
                             <label>Requested Hospital</label>
-                            <input type="text" name="requested_hospital" class="form-control" placeholder="Type hospital name..." required>
+                            <input type="text" name="requested_hospital" class="form-control"
+                                placeholder="Type hospital name..." required>
                         </div>
 
                         <button type="submit" name="submit_request" class="btn btn-primary btn-block btn-round mt-4">
@@ -157,11 +173,13 @@ include "../base/header.php";
                             <tbody>
                                 <?php if (count($requests) > 0): ?>
                                     <?php foreach ($requests as $r): ?>
-                                        <?php 
-                                            $st = strtolower($r['status']);
-                                            $badge = "badge-warning"; 
-                                            if($st == 'approved' || $st == 'accepted') $badge = "badge-success";
-                                            if($st == 'rejected') $badge = "badge-danger";
+                                        <?php
+                                        $st = strtolower($r['status']);
+                                        $badge = "badge-warning";
+                                        if ($st == 'approved' || $st == 'accepted')
+                                            $badge = "badge-success";
+                                        if ($st == 'rejected')
+                                            $badge = "badge-danger";
                                         ?>
                                         <tr>
                                             <td><strong><?= htmlspecialchars($r["child_name"]) ?></strong></td>
@@ -169,11 +187,10 @@ include "../base/header.php";
                                             <td><span class="badge <?= $badge ?> text-uppercase"><?= $r["status"] ?></span></td>
                                             <td><small><?= date('M d, Y', strtotime($r["created_at"])) ?></small></td>
                                             <td>
-                                                <a href="requestHospital.php?delete=<?= $r['id'] ?>" 
-                                                   class="btn btn-sm btn-outline-danger" 
-                                                   title="Cancel Request"
-                                                   onclick="return confirm('Are you sure you want to cancel this request?');">
-                                                   <i class="fa fa-trash"></i>
+                                                <a href="requestHospitals.php?delete=<?= $r['id'] ?>"
+                                                    class="btn btn-sm btn-outline-danger" title="Cancel Request"
+                                                    onclick="return confirm('Are you sure you want to cancel this request?');">
+                                                    <i class="fa fa-trash"></i>
                                                 </a>
                                             </td>
                                         </tr>

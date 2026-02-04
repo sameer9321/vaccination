@@ -23,7 +23,7 @@ if (isset($_GET['delete'])) {
     mysqli_stmt_close($stmt);
 
     // Redirect after deletion
-    header("Location: hospitals.php?deleted=1");
+    header("Location: addHospital.php?deleted=1");
     exit;
 }
 
@@ -51,11 +51,11 @@ if (isset($_POST['add'])) {
         mysqli_stmt_close($stmt);
 
         // Redirect after adding
-        header("Location: hospitals.php?added=1");
+        header("Location: addHospital.php?added=1");
         exit;
 
     } else {
-        header("Location: hospitals.php?error=1");
+        header("Location: addHospital.php?error=1");
         exit;
     }
 }
@@ -147,7 +147,7 @@ $total = mysqli_num_rows($result);
                             <td><?= htmlspecialchars($h['phone']) ?></td>
                             <td>
                                 <a
-                                    href="hospitals.php?delete=<?= (int)$h['id'] ?>"
+                                    href="addHospital.php?delete=<?= (int)$h['id'] ?>"
                                     class="btn btn-danger btn-sm"
                                     onclick="return confirm('Are you sure you want to delete this hospital?');"
                                 >

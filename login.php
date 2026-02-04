@@ -2,7 +2,7 @@
 session_start();
 include "includes/db.php";
 
-if (isset($_SESSION["role"])) {
+if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
     $role = strtolower($_SESSION["role"]);
 
     if ($role === "parent") {
@@ -15,10 +15,13 @@ if (isset($_SESSION["role"])) {
         exit;
     }
 
-    header("Location: mainadmin/index.php");
-    exit;
+    if ($role === "admin") {
+        header("Location: mainadmin/index.php");
+        exit;
+    }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
