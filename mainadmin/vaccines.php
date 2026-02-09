@@ -3,9 +3,6 @@ $pageTitle = "Vaccines";
 include '../base/header.php';
 include '../includes/db.php';
 
-/* =========================
-   Add Vaccine
-   ========================= */
 if (isset($_POST['add'])) {
     $name  = trim($_POST['name'] ?? '');
     $stock = trim($_POST['stock'] ?? '');
@@ -24,9 +21,6 @@ if (isset($_POST['add'])) {
     }
 }
 
-/* =========================
-   Delete Vaccine
-   ========================= */
 if (isset($_GET['delete'])) {
     $deleteId = (int) $_GET['delete'];
 
@@ -39,9 +33,6 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-/* =========================
-   Fetch Vaccines
-   ========================= */
 $result = mysqli_query($conn, "SELECT * FROM vaccines ORDER BY id DESC");
 if (!$result) {
     die("Query Failed: " . mysqli_error($conn));

@@ -3,7 +3,6 @@ session_start();
 $pageTitle = "Update Vaccine Status";
 include "../includes/db.php";
 
-/* Hospital Authentication */
 if (!isset($_SESSION["role"]) || strtolower((string)$_SESSION["role"]) !== "hospital") {
     header("Location: ../index.php");
     exit;
@@ -23,7 +22,6 @@ function calc_age_text($birthDate) {
     } catch (Exception $e) { return "N/A"; }
 }
 
-/* Process Update */
 if (isset($_POST["status_update"])) {
     $bookingId = (int)($_POST["booking_id"] ?? 0);
     $status = trim((string)($_POST["status"] ?? ""));
@@ -39,7 +37,6 @@ if (isset($_POST["status_update"])) {
     }
 }
 
-/* Fetch Bookings */
 $rows = [];
 $stmt = mysqli_prepare($conn, "
     SELECT b.id AS booking_id, c.child_name, c.birth_date, b.vaccine_name, b.booking_date, b.status
@@ -145,7 +142,6 @@ include "../base/header.php";
 </div>
 
 <script>
-// Simple live search for the table
 document.getElementById('tableSearch').addEventListener('keyup', function() {
     let filter = this.value.toUpperCase();
     let rows = document.querySelector("#statusTable tbody").rows;

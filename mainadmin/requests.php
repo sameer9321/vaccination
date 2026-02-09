@@ -3,10 +3,8 @@ $pageTitle = "Parent Requests";
 include '../base/header.php';
 include '../includes/db.php';
 
-/* ===== Approve / Reject Logic ===== */
 if(isset($_GET['approve'])){
     $id = intval($_GET['approve']);
-    // Updated table name to match your SQL file
     mysqli_query($conn,"UPDATE hospital_requests SET status='Approved' WHERE id=$id");
     header("Location: requests.php?msg=approved");
     exit;
@@ -14,14 +12,11 @@ if(isset($_GET['approve'])){
 
 if(isset($_GET['reject'])){
     $id = intval($_GET['reject']);
-    // Updated table name to match your SQL file
     mysqli_query($conn,"UPDATE hospital_requests SET status='Rejected' WHERE id=$id");
     header("Location: requests.php?msg=rejected");
     exit;
 }
 
-/* ===== Fetch Data using JOIN to get Parent Names ===== */
-// Your SQL file uses 'hospital_requests'. We JOIN with 'parents' to get the actual name.
 $query = "SELECT hr.*, p.parent_name 
           FROM hospital_requests hr 
           JOIN parents p ON hr.parent_id = p.parent_id 

@@ -1,8 +1,8 @@
 <?php
-session_start();  // This should only be here in header.php, ensure no other session_start() exists
+session_start();
 
 $pageTitle = "Hospitals";
-include '../base/header.php';  // Includes the session_start()
+include '../base/header.php';
 
 include '../includes/db.php';
 
@@ -12,9 +12,7 @@ include '../includes/db.php';
 if (isset($_GET['delete'])) {
     $deleteId = (int) $_GET['delete'];
 
-    // Validate hospital ID before proceeding with deletion
     if ($deleteId > 0) {
-        // Delete the hospital from the database
         $stmt = mysqli_prepare($conn, "DELETE FROM hospitals WHERE id = ?");
         if (!$stmt) {
             die("Prepare Failed: " . mysqli_error($conn));
@@ -24,18 +22,15 @@ if (isset($_GET['delete'])) {
         $result = mysqli_stmt_execute($stmt);
 
         if ($result) {
-            // Redirect with success message if deletion was successful
             header("Location: hospitals.php?deleted=1");
-            exit;  // Always use exit after a header redirect
+            exit;
         } else {
-            // Redirect with error message if deletion fails
             header("Location: hospitals.php?error=1");
             exit;
         }
 
         mysqli_stmt_close($stmt);
     } else {
-        // Redirect if invalid ID
         header("Location: hospitals.php?error=invalid_id");
         exit;
     }
@@ -51,7 +46,6 @@ if (isset($_POST['add'])) {
 
     if ($hospital_name !== '' && $address !== '' && $phone !== '') {
 
-        // Add new hospital to the database
         $stmt = mysqli_prepare(
             $conn,
             "INSERT INTO hospitals (hospital_name, address, phone) VALUES (?, ?, ?)"
@@ -66,17 +60,14 @@ if (isset($_POST['add'])) {
         mysqli_stmt_close($stmt);
 
         if ($result) {
-            // Redirect with success message
             header("Location: hospitals.php?added=1");
             exit;
         } else {
-            // Redirect with error message
             header("Location: hospitals.php?error=1");
             exit;
         }
 
     } else {
-        // Redirect if fields are empty
         header("Location: hospitals.php?error=empty_fields");
         exit;
     }

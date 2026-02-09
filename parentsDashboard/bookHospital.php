@@ -3,7 +3,6 @@ session_start();
 $pageTitle = "Book Hospital";
 include "../includes/db.php";
 
-// Access Control
 if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     header("Location: ../../../index.php");
     exit;
@@ -36,7 +35,6 @@ if ($parentId <= 0 && $userId > 0) {
 
 if ($parentId <= 0) { die("Parent not linked. Please re-login."); }
 
-/* Delete booking */
 if (isset($_GET["delete"])) {
     $deleteId = (int)$_GET["delete"];
     mysqli_query($conn, "DELETE b FROM bookings b JOIN children c ON c.child_id = b.child_id WHERE b.id = $deleteId AND c.parent_id = $parentId");
@@ -44,7 +42,6 @@ if (isset($_GET["delete"])) {
     exit;
 }
 
-/* Add booking logic */
 if (isset($_POST["book"])) {
     $childId = (int)$_POST["child_id"];
     $hospitalId = (int)$_POST["hospital_id"];
@@ -62,7 +59,6 @@ if (isset($_POST["book"])) {
     exit;
 }
 
-/* Data Fetching */
 $children = mysqli_query($conn, "SELECT child_id, child_name FROM children WHERE parent_id = $parentId ORDER BY child_name ASC");
 $hospitals = mysqli_query($conn, "SELECT id, hospital_name FROM hospitals ORDER BY hospital_name ASC");
 $bookings = mysqli_query($conn, "SELECT b.*, c.child_name, h.hospital_name FROM bookings b JOIN children c ON c.child_id = b.child_id JOIN hospitals h ON h.id = b.hospital_id WHERE c.parent_id = $parentId ORDER BY b.booking_date DESC");

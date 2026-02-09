@@ -3,7 +3,6 @@ session_start();
 $pageTitle = "Request Hospital";
 include "../includes/db.php";
 
-// Access Control
 if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     header("Location: ../../../index.php");
     exit;
@@ -13,7 +12,6 @@ $userId = (int) ($_SESSION["user_id"] ?? 0);
 $username = (string) ($_SESSION["username"] ?? "");
 $parentId = (int) ($_SESSION["parent_id"] ?? 0);
 
-/* Resolve parentId if missing */
 if ($parentId <= 0 && $userId > 0) {
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
     mysqli_stmt_bind_param($stmtU, "i", $userId);
@@ -49,7 +47,6 @@ if (isset($_GET["delete"])) {
     exit;
 }
 
-/* Submit request logic */
 $success = false;
 
 if (isset($_POST["submit_request"])) {
@@ -67,8 +64,6 @@ if (isset($_POST["submit_request"])) {
         mysqli_stmt_bind_param($stmtAdd, "iiss", $parentId, $childId, $requestedHospital, $status);
         mysqli_stmt_execute($stmtAdd);
         mysqli_stmt_close($stmtAdd);
-
-        // success flag (NO REDIRECT)
         $success = true;
     }
 }
@@ -80,10 +75,8 @@ $resC = mysqli_query($conn, "SELECT child_id, child_name FROM children WHERE par
 while ($rowC = mysqli_fetch_assoc($resC))
     $children[] = $rowC;
 
-/* Fetch Hospitals (Optional: If you want a dropdown instead of text input) */
 $hospitalList = mysqli_query($conn, "SELECT hospital_name FROM hospitals ORDER BY hospital_name ASC");
 
-/* Fetch Requests */
 $requests = [];
 $resR = mysqli_query($conn, "SELECT r.*, c.child_name FROM hospital_requests r JOIN children c ON c.child_id = r.child_id WHERE r.parent_id = $parentId ORDER BY r.id DESC");
 while ($rowR = mysqli_fetch_assoc($resR))

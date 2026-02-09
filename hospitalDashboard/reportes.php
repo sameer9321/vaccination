@@ -4,15 +4,9 @@ $pageTitle = "Vaccination Reports";
 include '../base/header.php';
 include '../includes/db.php';
 
-/* ============================================================
-   Fetch Vaccination Reports
-   Logic: Get records for this specific hospital if logged in as hospital,
-   otherwise get all (depending on your admin needs).
-   ============================================================ */
 $hospitalId = $_SESSION['hospital_id'] ?? 0;
 $role = $_SESSION['role'] ?? '';
 
-// If a hospital is logged in, only show THEIR reports
 $whereClause = ($role === 'hospital') ? "WHERE b.hospital_id = $hospitalId" : "";
 
 $query = "SELECT c.child_name, b.vaccine_name, b.booking_date, b.status
@@ -31,7 +25,6 @@ $result = mysqli_query($conn, $query);
     .status-done { background:#d4edda; color:#155724; }
     .status-other { background:#e9ecef; color:#495057; }
     
-    /* Print Styling */
     @media print {
         .no-print, .sidebar, .navbar { display: none !important; }
         .content { margin: 0 !important; padding: 0 !important; }
@@ -107,7 +100,6 @@ $result = mysqli_query($conn, $query);
 </section>
 
 <script>
-// Real-time search filter
 document.getElementById('reportSearch').addEventListener('keyup', function() {
     let filter = this.value.toUpperCase();
     let rows = document.querySelector("#reportTable tbody").rows;

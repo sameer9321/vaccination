@@ -3,17 +3,11 @@ $pageTitle = "Hospital List";
 include "../base/header.php";
 include "../includes/db.php";
 
-/*
-  This page is for admin only
-  Your header already blocks non logged users
-  Extra safety check:
-*/
 if (!isset($_SESSION["role"]) || strtolower((string)$_SESSION["role"]) !== "admin") {
     header("Location: ../index.php");
     exit;
 }
 
-/* Delete hospital */
 if (isset($_GET["delete"])) {
     $delete_id = (int)$_GET["delete"];
 
@@ -31,7 +25,6 @@ if (isset($_GET["delete"])) {
     }
 }
 
-/* Fetch hospitals */
 $rows = [];
 $result = mysqli_query($conn, "SELECT id, hospital_name, address, phone, email FROM hospitals ORDER BY id DESC");
 if (!$result) {

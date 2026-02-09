@@ -12,7 +12,6 @@ $userId = (int)($_SESSION["user_id"] ?? 0);
 $username = (string)($_SESSION["username"] ?? "");
 $hospitalId = (int)($_SESSION["hospital_id"] ?? 0);
 
-/* Resolve hospital_id (preserved your logic) */
 if ($hospitalId <= 0 && $userId > 0) {
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
     if ($stmtU) {
@@ -52,10 +51,8 @@ function calc_age_text($birthDate) {
 /* Statistics */
 $totalAppointments = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings WHERE hospital_id = $hospitalId"))['total'];
 $totalPending = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings WHERE hospital_id = $hospitalId AND LOWER(status) = 'pending'"))['total'];
-// NEW: Count association requests from parents
 $totalRequests = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM hospital_requests WHERE requested_hospital = (SELECT hospital_name FROM hospitals WHERE id = $hospitalId) AND status = 'Pending'"))['total'];
 
-/* Upcoming appointments list */
 $appointments = [];
 $resA = mysqli_query($conn, "SELECT b.id as booking_id, c.child_name, c.birth_date, b.vaccine_name, b.booking_date, b.status 
     FROM bookings b JOIN children c ON c.child_id = b.child_id 

@@ -3,9 +3,6 @@ $pageTitle = "Vaccination Reports";
 include '../base/header.php';
 include '../includes/db.php';
 
-/* =========================
-   Initialize Filters
-   ========================= */
 $whereCondition = '';
 $startDate = $_POST['start_date'] ?? '';
 $endDate = $_POST['end_date'] ?? '';
@@ -17,11 +14,7 @@ if (!empty($startDate) && !empty($endDate)) {
     $whereCondition = " AND b.booking_date BETWEEN '$s' AND '$e'";
 }
 
-/* =========================
-   Export to CSV Logic
-   ========================= */
 if (isset($_POST['export_csv'])) {
-    // Clear any previous output to prevent corrupting the CSV
     ob_end_clean(); 
     
     $csvFileName = 'vaccination_report_' . date('Y_m_d') . '.csv';
@@ -30,8 +23,6 @@ if (isset($_POST['export_csv'])) {
     
     $output = fopen('php://output', 'w');
     fputcsv($output, ['Child Name', 'Vaccine Name', 'Booking Date', 'Status']);
-
-    // Re-run query with the EXACT same filters used in the UI
     $exportQuery = "
         SELECT c.child_name, b.vaccine_name, b.booking_date, b.status
         FROM bookings b
@@ -44,10 +35,9 @@ if (isset($_POST['export_csv'])) {
         fputcsv($output, $row);
     }
     fclose($output);
-    exit(); // Stop execution so no HTML is appended to the CSV
+    exit();
 }
 
-// Fetch data for the HTML table
 $result = mysqli_query($conn, "
     SELECT c.child_name, b.vaccine_name, b.booking_date, b.status
     FROM bookings b

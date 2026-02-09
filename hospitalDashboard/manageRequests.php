@@ -3,7 +3,6 @@ session_start();
 $pageTitle = "Manage Association Requests";
 include "../includes/db.php";
 
-/* Hospital Authentication */
 if (!isset($_SESSION["role"]) || strtolower((string)$_SESSION["role"]) !== "hospital") {
     header("Location: ../index.php");
     exit;
@@ -16,7 +15,6 @@ if ($hospitalId <= 0) {
     die("Hospital session not found. Please re-login.");
 }
 
-/* Handle Action (Approve/Reject) */
 if (isset($_GET['id']) && isset($_GET['action'])) {
     $requestId = (int)$_GET['id'];
     $action = $_GET['action'];
@@ -33,10 +31,6 @@ if (isset($_GET['id']) && isset($_GET['action'])) {
     exit;
 }
 
-/* Fetch Pending Requests 
-   NOTE: I removed p.phone to fix your SQL error. 
-   I used p.email instead. If your column is named 'contact', change it below.
-*/
 $requests = [];
 $query = "SELECT r.*, c.child_name, c.birth_date, p.parent_name, p.email 
           FROM hospital_requests r

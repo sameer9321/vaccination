@@ -3,7 +3,6 @@ session_start();
 $pageTitle = "Child Details";
 include "../includes/db.php";
 
-// Access Control
 if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     header("Location: ../../../index.php");
     exit;
@@ -13,7 +12,6 @@ $userId = (int)($_SESSION["user_id"] ?? 0);
 $username = (string)($_SESSION["username"] ?? "Parent");
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
 
-/* Logic to ensure parent_id is linked to session */
 if ($parentId <= 0 && $userId > 0) {
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
     mysqli_stmt_bind_param($stmtU, "i", $userId);
@@ -36,10 +34,8 @@ if ($parentId <= 0 && $userId > 0) {
 
 if ($parentId <= 0) { die("Parent not linked. Please re-login."); }
 
-/* Delete Logic */
 if (isset($_GET["delete"])) {
     $deleteId = (int)$_GET["delete"];
-    // Check for existing bookings before delete
     $checkB = mysqli_query($conn, "SELECT id FROM bookings WHERE child_id = $deleteId LIMIT 1");
     if (mysqli_num_rows($checkB) > 0) {
         header("Location: childDetails.php?cannotdelete=1");
@@ -50,7 +46,6 @@ if (isset($_GET["delete"])) {
     exit;
 }
 
-/* Add Logic */
 if (isset($_POST["add_child"])) {
     $childName = mysqli_real_escape_string($conn, $_POST["child_name"]);
     $birthDate = $_POST["birth_date"];
@@ -63,7 +58,6 @@ if (isset($_POST["add_child"])) {
     exit;
 }
 
-/* Fetch Children */
 $childrenResult = mysqli_query($conn, "SELECT * FROM children WHERE parent_id = $parentId ORDER BY child_id DESC");
 
 include "../base/header.php";

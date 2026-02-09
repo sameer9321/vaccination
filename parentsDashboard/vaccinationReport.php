@@ -13,7 +13,6 @@ $userId = (int)($_SESSION["user_id"] ?? 0);
 $username = (string)($_SESSION["username"] ?? "");
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
 
-/* Resolve parent id if missing */
 if ($parentId <= 0 && $userId > 0) {
 
     $userEmail = "";
@@ -67,11 +66,6 @@ if ($parentId <= 0) {
     die("Parent not linked. Please log out and log in again.");
 }
 
-/*
-  Fetch previous vaccinations for this parent
-  Logic:
-  show completed records OR past date records
-*/
 $reports = [];
 
 $stmt = mysqli_prepare($conn, "

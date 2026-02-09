@@ -3,10 +3,6 @@ $pageTitle = "Upcoming Vaccinations";
 include '../base/header.php';
 include '../includes/db.php';
 
-/* =========================
-   Fetch Upcoming Vaccinations
-   ========================= */
-// Filtered to show only 'Pending' or 'Approved' items that haven't happened yet
 $query = "
     SELECT 
         c.child_name,

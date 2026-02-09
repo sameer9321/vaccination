@@ -3,7 +3,6 @@ session_start();
 $pageTitle = "Parent Dashboard";
 include "../includes/db.php";
 
-// Access Control
 if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     header("Location: ../../../index.php");
     exit;
@@ -13,7 +12,6 @@ $userId = (int)($_SESSION["user_id"] ?? 0);
 $username = (string)($_SESSION["username"] ?? "Parent");
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
 
-/* Ensure parent_id is linked to the session */
 if ($parentId <= 0 && $userId > 0) {
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
     mysqli_stmt_bind_param($stmtU, "i", $userId);
@@ -39,7 +37,6 @@ if ($parentId <= 0 && $userId > 0) {
     }
 }
 
-/* Statistics Queries */
 $totalChildren = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM children WHERE parent_id = $parentId"))['total'];
 $totalUpcoming = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings b JOIN children c ON b.child_id = c.child_id WHERE c.parent_id = $parentId AND b.booking_date >= CURDATE()"))['total'];
 $totalPending = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM hospital_requests WHERE parent_id = $parentId AND status = 'Pending'"))['total'];
@@ -47,7 +44,6 @@ $totalCompleted = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as tot
 // Missing query for the 5th card
 $totalHospitals = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM hospitals"))['total'];
 
-/* Notification Feed */
 $upcomingList = mysqli_query($conn, "SELECT c.child_name, b.vaccine_name, b.booking_date, b.status FROM bookings b JOIN children c ON b.child_id = c.child_id WHERE c.parent_id = $parentId AND b.booking_date >= CURDATE() ORDER BY b.booking_date ASC LIMIT 4");
 
 include "../base/header.php";

@@ -1,5 +1,4 @@
 <?php
-// Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -22,7 +21,6 @@ if (isset($_GET['delete'])) {
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
 
-    // Redirect after deletion
     header("Location: addHospital.php?deleted=1");
     exit;
 }
@@ -49,8 +47,6 @@ if (isset($_POST['add'])) {
         mysqli_stmt_bind_param($stmt, "sss", $hospital_name, $address, $phone);
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
-
-        // Redirect after adding
         header("Location: addHospital.php?added=1");
         exit;
 
@@ -60,9 +56,6 @@ if (isset($_POST['add'])) {
     }
 }
 
-/* =========================
-   Fetch Hospitals
-   ========================= */
 $result = mysqli_query($conn, "SELECT * FROM hospitals ORDER BY id DESC");
 if (!$result) {
     die("Query Failed: " . mysqli_error($conn));
@@ -100,8 +93,6 @@ $total = mysqli_num_rows($result);
 
         <span class="badge bg-primary">Total: <?= $total ?></span>
     </div>
-
-    <!-- Add Hospital Form -->
     <form method="post" class="row g-2 align-items-end mb-4">
         <div class="col-12 col-md-4">
             <label class="form-label mb-1">Hospital Name</label>
@@ -125,7 +116,6 @@ $total = mysqli_num_rows($result);
         </div>
     </form>
 
-    <!-- Hospitals Table -->
     <div class="table-responsive">
         <table class="table table-bordered table-hover text-center align-middle">
             <thead>

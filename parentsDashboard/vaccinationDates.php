@@ -3,21 +3,16 @@ session_start();
 $pageTitle = "Vaccination Dates";
 include "../includes/db.php";
 
-// Access Control
 if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     header("Location: ../../../index.php");
     exit;
 }
 
-// Parent linkage check
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
 if ($parentId <= 0) {
     die("Parent profile not found. Please log in again.");
 }
 
-/* Fetch upcoming vaccinations. 
-   Includes Hospital Name from 'hospitals' and Child Name from 'children'
-*/
 $vaccinations = [];
 $stmt = mysqli_prepare($conn, "
     SELECT 

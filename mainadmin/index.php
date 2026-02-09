@@ -3,16 +3,11 @@ $pageTitle = "Admin Dashboard";
 include '../base/header.php';
 include '../includes/db.php';
 
-// Role Security Check (Based on your 'users' table role column)
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../login.php");
     exit();
 }
 
-/**
- * Helper function to count rows
- * Updated to use mysqli_real_escape_string for table names for basic safety
- */
 function countRows($conn, $table, $where="") {
     $table = mysqli_real_escape_string($conn, $table);
     $sql = "SELECT COUNT(*) as total FROM `$table` $where";
@@ -21,11 +16,9 @@ function countRows($conn, $table, $where="") {
     return mysqli_fetch_assoc($res)['total'];
 }
 
-// Fetch stats based on your SQL schema
 $children  = countRows($conn, "children");
 $bookings  = countRows($conn, "bookings");
 $hospitals = countRows($conn, "hospitals");
-// Using hospital_requests as it maps to the Parent -> Admin workflow in your doc 
 $requests  = countRows($conn, "hospital_requests", "WHERE status='Pending'");
 $vaccines  = countRows($conn, "vaccines");
 

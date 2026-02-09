@@ -9,7 +9,6 @@ if (!isset($_SESSION["role"]) || strtolower((string)$_SESSION["role"]) !== "hosp
 
 $hospitalId = (int)($_SESSION["hospital_id"] ?? 0);
 
-/* Update Status Logic */
 if (isset($_POST["update_status"])) {
     $bid = (int)$_POST["booking_id"];
     $status = $_POST["status"];

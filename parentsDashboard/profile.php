@@ -6,7 +6,6 @@ if (session_status() == PHP_SESSION_NONE) {
 $pageTitle = "My Profile";
 include "../includes/db.php";
 
-/* Parent Auth Check */
 if (!isset($_SESSION["role"]) || strtolower((string)$_SESSION["role"]) !== "parent") {
     header("Location: ../index.php");
     exit;
@@ -15,7 +14,6 @@ if (!isset($_SESSION["role"]) || strtolower((string)$_SESSION["role"]) !== "pare
 $userId = (int)($_SESSION["user_id"] ?? 0);
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
 
-/* Resolve parent_id if not in session */
 if ($parentId <= 0 && $userId > 0) {
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
     mysqli_stmt_bind_param($stmtU, "i", $userId);
@@ -41,7 +39,6 @@ if ($parentId <= 0) {
     die("Parent profile not linked. Please re-login.");
 }
 
-/* Update Profile Logic */
 if (isset($_POST["save_profile"])) {
     $parentName = trim((string)$_POST["parent_name"]);
     $address = trim((string)$_POST["address"]);
@@ -61,7 +58,6 @@ if (isset($_POST["save_profile"])) {
     }
 }
 
-/* Fetch Current Parent Data */
 $stmt = mysqli_prepare($conn, "SELECT parent_name, address, phone, email FROM parents WHERE parent_id = ? LIMIT 1");
 mysqli_stmt_bind_param($stmt, "i", $parentId);
 mysqli_stmt_execute($stmt);
@@ -95,7 +91,6 @@ include "../base/header.php";
                 </div>
                 <div class="body text-center">
                     <?php 
-                        // Fetch pic from users table as established in previous steps
                         $picQ = mysqli_query($conn, "SELECT profile_pic FROM users WHERE id = '$userId'");
                         $picR = mysqli_fetch_assoc($picQ);
                         $userPic = (!empty($picR['profile_pic'])) ? $picR['profile_pic'] : 'user.png';

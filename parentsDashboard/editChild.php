@@ -12,7 +12,6 @@ if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
 $userId = (int)($_SESSION["user_id"] ?? 0);
 $username = (string)($_SESSION["username"] ?? "");
 
-/* children.parent_id references parents.parent_id */
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
 
 if ($parentId <= 0 && $userId > 0) {
@@ -72,7 +71,6 @@ if ($childId <= 0) {
     exit;
 }
 
-/* Fetch child, only if it belongs to this parent */
 $child = null;
 $stmt = mysqli_prepare($conn, "
     SELECT child_id, child_name, birth_date, vaccination_status
@@ -93,7 +91,6 @@ if (!$child) {
     die("Child not found or you do not have access.");
 }
 
-/* Update child */
 if (isset($_POST["save_child"])) {
     $childName = trim($_POST["child_name"] ?? "");
     $birthDate = trim($_POST["birth_date"] ?? "");

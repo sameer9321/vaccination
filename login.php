@@ -137,9 +137,8 @@ if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
   })
   .then(res => res.json())
   .then(data => {
-    console.log(data); // Debugging: See what the server sends back
+    console.log(data);
     if (data.status) {
-      // FORCE REDIRECT
       window.location.replace(data.redirect); 
     } else {
       alert(data.msg);

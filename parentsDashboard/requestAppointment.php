@@ -27,7 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
-// Fetch available hospitals for the parent
 $sql = "SELECT * FROM hospitals";
 $result = $conn->query($sql);
 while ($row = $result->fetch_assoc()) {

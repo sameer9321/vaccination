@@ -3,16 +3,11 @@ $pageTitle = "All Children";
 include '../base/header.php';
 include '../includes/db.php';
 
-/* =========================
-   Delete child logic
-   ========================= */
 if (isset($_GET['delete'])) {
     $deleteId = (int) $_GET['delete'];
 
-    // Using a transaction ensures if one delete fails, none happen
     mysqli_begin_transaction($conn);
     try {
-        // Delete related bookings first to avoid foreign key errors
         mysqli_query($conn, "DELETE FROM bookings WHERE child_id = $deleteId");
         
         // Delete the child
@@ -29,9 +24,6 @@ if (isset($_GET['delete'])) {
     exit;
 }
 
-/* =========================
-   Fetch Children + Parent
-   ========================= */
 $result = mysqli_query($conn, "
     SELECT 
         c.child_id,
@@ -123,7 +115,6 @@ $result = mysqli_query($conn, "
 </div>
 
 <script>
-// Real-time search functionality
 document.getElementById('childSearch').addEventListener('keyup', function() {
     let filter = this.value.toLowerCase();
     let rows = document.querySelectorAll('#childrenTable tbody tr');

@@ -39,12 +39,10 @@ if ($action === "login") {
         $response["msg"] = "Wrong password";
     } else {
 
-        // Set base session
         $_SESSION["role"] = $role;
         $_SESSION["user_id"] = (int)$user["id"];
         $_SESSION["username"] = (string)$user["username"];
 
-        // Parent linking (optional)
         if ($role === "parent") {
             $stmtP = mysqli_prepare($conn, "SELECT parent_id FROM parents WHERE email = ? LIMIT 1");
             if ($stmtP) {
@@ -60,12 +58,9 @@ if ($action === "login") {
             }
         }
 
-        // Hospital linking (IMPORTANT)
         if ($role === "hospital") {
             $hid = 0;
             $hname = "";
-
-            // Match hospital by email
             $stmtH = mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE email = ? LIMIT 1");
             if ($stmtH) {
                 mysqli_stmt_bind_param($stmtH, "s", $user["email"]);
@@ -80,7 +75,6 @@ if ($action === "login") {
                 }
             }
 
-            // Fallback: match by hospital_name = username
             if ($hid <= 0) {
                 $stmtH2 = mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE hospital_name = ? LIMIT 1");
                 if ($stmtH2) {
@@ -142,7 +136,6 @@ if ($action === "register") {
         $_SESSION["username"] = $username;
         $_SESSION["user_id"] = (int)mysqli_insert_id($conn);
 
-        // IMPORTANT: if hospital registers, also insert into hospitals table
         if ($role === "hospital") {
             $stmtInsH = mysqli_prepare($conn, "INSERT INTO hospitals (hospital_name, address, phone, email) VALUES (?, ?, ?, ?)");
             if ($stmtInsH) {

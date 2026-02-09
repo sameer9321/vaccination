@@ -3,9 +3,6 @@ $pageTitle = "Bookings";
 include '../base/header.php';
 include '../includes/db.php';
 
-/* =========================
-   Fetch Bookings
-   ========================= */
 $result = mysqli_query($conn, "
     SELECT 
         c.child_name,
