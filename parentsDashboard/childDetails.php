@@ -8,9 +8,9 @@ if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     exit;
 }
 
-$userId = (int)($_SESSION["user_id"] ?? 0);
-$username = (string)($_SESSION["username"] ?? "Parent");
-$parentId = (int)($_SESSION["parent_id"] ?? 0);
+$userId = (int) ($_SESSION["user_id"] ?? 0);
+$username = (string) ($_SESSION["username"] ?? "Parent");
+$parentId = (int) ($_SESSION["parent_id"] ?? 0);
 
 if ($parentId <= 0 && $userId > 0) {
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
@@ -32,10 +32,12 @@ if ($parentId <= 0 && $userId > 0) {
     }
 }
 
-if ($parentId <= 0) { die("Parent not linked. Please re-login."); }
+if ($parentId <= 0) {
+    die("Parent not linked. Please re-login.");
+}
 
 if (isset($_GET["delete"])) {
-    $deleteId = (int)$_GET["delete"];
+    $deleteId = (int) $_GET["delete"];
     $checkB = mysqli_query($conn, "SELECT id FROM bookings WHERE child_id = $deleteId LIMIT 1");
     if (mysqli_num_rows($checkB) > 0) {
         header("Location: childDetails.php?cannotdelete=1");
@@ -62,13 +64,17 @@ $childrenResult = mysqli_query($conn, "SELECT * FROM children WHERE parent_id = 
 
 include "../base/header.php";
 
-function calc_age_text($birthDate) {
-    if (!$birthDate) return "N/A";
+function calc_age_text($birthDate)
+{
+    if (!$birthDate)
+        return "N/A";
     $dob = new DateTime($birthDate);
     $now = new DateTime();
     $diff = $now->diff($dob);
-    if ($diff->y > 0) return $diff->y . " yrs";
-    if ($diff->m > 0) return $diff->m . " months";
+    if ($diff->y > 0)
+        return $diff->y . " yrs";
+    if ($diff->m > 0)
+        return $diff->m . " months";
     return $diff->d . " days";
 }
 ?>
@@ -109,10 +115,7 @@ function calc_age_text($birthDate) {
                             <label>Child Full Name</label>
                             <input type="text" name="child_name" class="form-control" placeholder="Enter name" required>
                         </div>
-                        <div class="form-group">
-                            <label>Birth Date</label>
-                            <input type="date" name="birth_date" class="form-control" required>
-                        </div>
+                        <input type="date" name="birth_date" class="form-control" required max="<?= date('Y-m-d') ?>">
                         <div class="form-group">
                             <label>Initial Status</label>
                             <select name="vaccination_status" class="form-control">
@@ -120,7 +123,8 @@ function calc_age_text($birthDate) {
                                 <option value="Up to date">Up to date</option>
                             </select>
                         </div>
-                        <button type="submit" name="add_child" class="btn btn-primary btn-round btn-block">Register Child</button>
+                        <button type="submit" name="add_child" class="btn btn-primary btn-round btn-block">Register
+                            Child</button>
                     </form>
                 </div>
             </div>
@@ -144,31 +148,36 @@ function calc_age_text($birthDate) {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if(mysqli_num_rows($childrenResult) > 0): while($c = mysqli_fetch_assoc($childrenResult)): ?>
-                                <tr>
-                                    <td><strong><?= htmlspecialchars($c['child_name']) ?></strong></td>
-                                    <td><?= date('d M Y', strtotime($c['birth_date'])) ?></td>
-                                    <td><span class="badge badge-info"><?= calc_age_text($c['birth_date']) ?></span></td>
-                                    <td>
-                                        <?php if($c['vaccination_status'] == 'Completed'): ?>
-                                            <span class="badge badge-success">Completed</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-warning"><?= $c['vaccination_status'] ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <a href="editChild.php?id=<?= $c['child_id'] ?>" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa fa-edit"></i></a>
-                                        <a href="childDetails.php?delete=<?= $c['child_id'] ?>" 
-                                           class="btn btn-sm btn-outline-danger" 
-                                           onclick="return confirm('Delete this record?');" title="Delete">
-                                            <i class="fa fa-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                <?php endwhile; else: ?>
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">No child records found. Add one on the left.</td>
-                                </tr>
+                                <?php if (mysqli_num_rows($childrenResult) > 0):
+                                    while ($c = mysqli_fetch_assoc($childrenResult)): ?>
+                                        <tr>
+                                            <td><strong><?= htmlspecialchars($c['child_name']) ?></strong></td>
+                                            <td><?= date('d M Y', strtotime($c['birth_date'])) ?></td>
+                                            <td><span class="badge badge-info"><?= calc_age_text($c['birth_date']) ?></span>
+                                            </td>
+                                            <td>
+                                                <?php if ($c['vaccination_status'] == 'Completed'): ?>
+                                                    <span class="badge badge-success">Completed</span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-warning"><?= $c['vaccination_status'] ?></span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="editChild.php?id=<?= $c['child_id'] ?>"
+                                                    class="btn btn-sm btn-outline-primary" title="Edit"><i
+                                                        class="fa fa-edit"></i></a>
+                                                <a href="childDetails.php?delete=<?= $c['child_id'] ?>"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Delete this record?');" title="Delete">
+                                                    <i class="fa fa-trash"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; else: ?>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">No child records found. Add one on
+                                            the left.</td>
+                                    </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>

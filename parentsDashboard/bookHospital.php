@@ -8,9 +8,9 @@ if (!isset($_SESSION["role"]) || strtolower($_SESSION["role"]) !== "parent") {
     exit;
 }
 
-$userId = (int)($_SESSION["user_id"] ?? 0);
-$username = (string)($_SESSION["username"] ?? "Parent");
-$parentId = (int)($_SESSION["parent_id"] ?? 0);
+$userId = (int) ($_SESSION["user_id"] ?? 0);
+$username = (string) ($_SESSION["username"] ?? "Parent");
+$parentId = (int) ($_SESSION["parent_id"] ?? 0);
 
 /* Resolve parentId from parents table if missing */
 if ($parentId <= 0 && $userId > 0) {
@@ -33,18 +33,20 @@ if ($parentId <= 0 && $userId > 0) {
     }
 }
 
-if ($parentId <= 0) { die("Parent not linked. Please re-login."); }
+if ($parentId <= 0) {
+    die("Parent not linked. Please re-login.");
+}
 
 if (isset($_GET["delete"])) {
-    $deleteId = (int)$_GET["delete"];
+    $deleteId = (int) $_GET["delete"];
     mysqli_query($conn, "DELETE b FROM bookings b JOIN children c ON c.child_id = b.child_id WHERE b.id = $deleteId AND c.parent_id = $parentId");
     header("Location: bookHospital.php?deleted=1");
     exit;
 }
 
 if (isset($_POST["book"])) {
-    $childId = (int)$_POST["child_id"];
-    $hospitalId = (int)$_POST["hospital_id"];
+    $childId = (int) $_POST["child_id"];
+    $hospitalId = (int) $_POST["hospital_id"];
     $vaccineName = mysqli_real_escape_string($conn, $_POST["vaccine_name"]);
     $bookingDate = $_POST["booking_date"];
 
@@ -62,6 +64,10 @@ if (isset($_POST["book"])) {
 $children = mysqli_query($conn, "SELECT child_id, child_name FROM children WHERE parent_id = $parentId ORDER BY child_name ASC");
 $hospitals = mysqli_query($conn, "SELECT id, hospital_name FROM hospitals ORDER BY hospital_name ASC");
 $bookings = mysqli_query($conn, "SELECT b.*, c.child_name, h.hospital_name FROM bookings b JOIN children c ON c.child_id = b.child_id JOIN hospitals h ON h.id = b.hospital_id WHERE c.parent_id = $parentId ORDER BY b.booking_date DESC");
+$vaccines = mysqli_query(
+    $conn,
+    "SELECT id, name FROM vaccines ORDER BY name ASC"
+);
 
 include "../base/header.php";
 ?>
@@ -100,35 +106,45 @@ include "../base/header.php";
                     <?php if (mysqli_num_rows($children) === 0): ?>
                         <div class="alert alert-info">Please <a href="childDetails.php">add a child</a> first.</div>
                     <?php else: ?>
-                    <form method="post">
-                        <div class="form-group mb-3">
-                            <label>Select Child</label>
-                            <select name="child_id" class="form-control" required>
-                                <option value="">-- Choose Child --</option>
-                                <?php while($c = mysqli_fetch_assoc($children)): ?>
-                                    <option value="<?= $c['child_id'] ?>"><?= htmlspecialchars($c['child_name']) ?></option>
-                                <?php endwhile; ?>
-                            </select>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label>Select Hospital</label>
-                            <select name="hospital_id" class="form-control" required>
-                                <option value="">-- Choose Hospital --</option>
-                                <?php while($h = mysqli_fetch_assoc($hospitals)): ?>
-                                    <option value="<?= $h['id'] ?>"><?= htmlspecialchars($h['hospital_name']) ?></option>
-                                <?php endwhile; ?>
-                            </select>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label>Vaccine Name</label>
-                            <input type="text" name="vaccine_name" class="form-control" placeholder="e.g. Hepatitis B, Polio" required>
-                        </div>
-                        <div class="form-group mb-4">
-                            <label>Preferred Date</label>
-                            <input type="date" name="booking_date" class="form-control" required>
-                        </div>
-                        <button type="submit" name="book" class="btn btn-primary btn-round btn-block">Confirm Booking</button>
-                    </form>
+                        <form method="post">
+                            <div class="form-group mb-3">
+                                <label>Select Child</label>
+                                <select name="child_id" class="form-control" required>
+                                    <option value="">-- Choose Child --</option>
+                                    <?php while ($c = mysqli_fetch_assoc($children)): ?>
+                                        <option value="<?= $c['child_id'] ?>"><?= htmlspecialchars($c['child_name']) ?></option>
+                                    <?php endwhile; ?>
+                                </select>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label>Select Hospital</label>
+                                <select name="hospital_id" class="form-control" required>
+                                    <option value="">-- Choose Hospital --</option>
+                                    <?php while ($h = mysqli_fetch_assoc($hospitals)): ?>
+                                        <option value="<?= $h['id'] ?>"><?= htmlspecialchars($h['hospital_name']) ?></option>
+                                    <?php endwhile; ?>
+                                </select>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label>Select Vaccine</label>
+                                <select name="vaccine_name" class="form-control" required>
+                                    <option value="">-- Choose Vaccine --</option>
+                                    <?php while ($v = mysqli_fetch_assoc($vaccines)): ?>
+                                        <option value="<?= htmlspecialchars($v['name']) ?>">
+                                            <?= htmlspecialchars($v['name']) ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                </select>
+                            </div>
+
+                            <div class="form-group mb-4">
+                                <label>Preferred Date</label>
+                                <input type="date" name="booking_date" class="form-control" required
+                                    min="<?= date('Y-m-d') ?>">
+                            </div>
+                            <button type="submit" name="book" class="btn btn-primary btn-round btn-block">Confirm
+                                Booking</button>
+                        </form>
                     <?php endif; ?>
                 </div>
             </div>
@@ -154,38 +170,42 @@ include "../base/header.php";
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php 
-                                $i=1; 
-                                if(mysqli_num_rows($bookings) > 0): 
-                                    while($b = mysqli_fetch_assoc($bookings)): 
-                                ?>
-                                <tr>
-                                    <td><?= $i++ ?></td>
-                                    <td><strong><?= htmlspecialchars($b['child_name']) ?></strong></td>
-                                    <td><span class="badge bg-blue text-white"><?= htmlspecialchars($b['vaccine_name']) ?></span></td>
-                                    <td><?= htmlspecialchars($b['hospital_name']) ?></td>
-                                    <td><?= date('d M Y', strtotime($b['booking_date'])) ?></td>
-                                    <td>
-                                        <?php 
-                                            $s = strtolower($b['status']);
-                                            $badge = "badge-warning";
-                                            if($s == 'vaccinated' || $s == 'completed') $badge = "badge-success";
-                                            if($s == 'rejected') $badge = "badge-danger";
+                                <?php
+                                $i = 1;
+                                if (mysqli_num_rows($bookings) > 0):
+                                    while ($b = mysqli_fetch_assoc($bookings)):
                                         ?>
-                                        <span class="badge <?= $badge ?>"><?= strtoupper($b['status']) ?></span>
-                                    </td>
-                                    <td>
-                                        <a href="bookHospital.php?delete=<?= $b['id'] ?>" 
-                                           class="btn btn-sm btn-outline-danger" 
-                                           onclick="return confirm('Cancel this appointment?');">
-                                            <i class="fa fa-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                <?php endwhile; else: ?>
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted">No appointments found.</td>
-                                </tr>
+                                        <tr>
+                                            <td><?= $i++ ?></td>
+                                            <td><strong><?= htmlspecialchars($b['child_name']) ?></strong></td>
+                                            <td><span
+                                                    class="badge bg-blue text-white"><?= htmlspecialchars($b['vaccine_name']) ?></span>
+                                            </td>
+                                            <td><?= htmlspecialchars($b['hospital_name']) ?></td>
+                                            <td><?= date('d M Y', strtotime($b['booking_date'])) ?></td>
+                                            <td>
+                                                <?php
+                                                $s = strtolower($b['status']);
+                                                $badge = "badge-warning";
+                                                if ($s == 'vaccinated' || $s == 'completed')
+                                                    $badge = "badge-success";
+                                                if ($s == 'rejected')
+                                                    $badge = "badge-danger";
+                                                ?>
+                                                <span class="badge <?= $badge ?>"><?= strtoupper($b['status']) ?></span>
+                                            </td>
+                                            <td>
+                                                <a href="bookHospital.php?delete=<?= $b['id'] ?>"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Cancel this appointment?');">
+                                                    <i class="fa fa-trash"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; else: ?>
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">No appointments found.</td>
+                                    </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>

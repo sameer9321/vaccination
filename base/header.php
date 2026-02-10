@@ -77,9 +77,7 @@ $pageTitle = $pageTitle ?? ucfirst($role) . " Dashboard";
                     <?php if($role == 'admin'): ?>
                         <li><a href="hospitalslist.php"><i class="fa fa-hospital-o"></i> Hospitals</a></li>
                         <li><a href="vaccines.php"><i class="fa fa-flask"></i> Vaccines</a></li>
-                        <li><a href="users.php"><i class="fa fa-users"></i> All Users</a></li>
                         <li><a href="reports.php"><i class="fa fa-file-text"></i> Global Reports</a></li>
-                        <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
 
                     <?php elseif($role == 'hospital'): ?>
                         <li><a href="appointments.php"><i class="fa fa-calendar"></i> Appointments</a></li>
