@@ -2,26 +2,14 @@
 session_start();
 include "includes/db.php";
 
+// Redirect logic for users already logged in
 if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
     $role = strtolower($_SESSION["role"]);
-
-    if ($role === "parent") {
-        header("Location: parentsDashboard/parentdashboard.php");
-        exit;
-    }
-
-    if ($role === "hospital") {
-        header("Location: hospitalDashboard/hospitalDashboard.php");
-        exit;
-    }
-
-    if ($role === "admin") {
-        header("Location: mainadmin/index.php");
-        exit;
-    }
+    if ($role === "parent") { header("Location: parentsDashboard/parentdashboard.php"); exit; }
+    if ($role === "hospital") { header("Location: hospitalDashboard/hospitalDashboard.php"); exit; }
+    if ($role === "admin") { header("Location: mainadmin/index.php"); exit; }
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -54,7 +42,7 @@ if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
     
     <div class="flex justify-center mb-6 border-b border-gray-200 relative">
       <button id="loginToggle" class="toggle-btn px-6 py-2 font-semibold border-b-2 border-blue-500 text-blue-500 transition relative z-10">Login</button>
-      <button id="registerToggle" class="toggle-btn px-6 py-2 font-semibold text-gray-400 transition relative z-10">Register</button>
+      <button id="registerToggle" class="toggle-btn px-6 py-2 font-semibold text-gray-400 transition relative z-10 hidden">Register</button>
       <div class="absolute bottom-0 left-0 w-1/2 h-0.5 bg-blue-500 transition-all duration-300" id="slider"></div>
     </div>
 
@@ -76,43 +64,64 @@ if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
     feather.replace();
 
     const roleButtons = document.querySelectorAll(".role-btn");
+    const loginToggle = document.getElementById("loginToggle");
+    const registerToggle = document.getElementById("registerToggle");
+    const emailField = document.getElementById("email");
+    const slider = document.getElementById("slider");
+    
     let selectedRole = "Admin";
     let isLogin = true;
 
+    // Handle Role Switching
     roleButtons.forEach(btn => {
       btn.addEventListener("click", () => {
         selectedRole = btn.innerText.trim();
+        
+        // Update Button UI
         roleButtons.forEach(b => {
             b.classList.remove("bg-blue-100", "text-blue-600", "border-blue-500");
             b.classList.add("border-gray-300", "text-gray-700");
         });
         btn.classList.add("bg-blue-100", "text-blue-600", "border-blue-500");
+
+        // Logic: Hide register for Admin
+        if (selectedRole === "Admin") {
+            registerToggle.classList.add("hidden");
+            switchToLogin(); // Force switch to login if they were on register tab
+        } else {
+            registerToggle.classList.remove("hidden");
+        }
+        
         updateUI();
       });
     });
 
-    const loginToggle = document.getElementById("loginToggle");
-    const registerToggle = document.getElementById("registerToggle");
-    const emailField = document.getElementById("email");
-    const slider = document.getElementById("slider");
-
-    loginToggle.addEventListener("click", () => {
+    // Toggle Logic Functions
+    function switchToLogin() {
       isLogin = true;
       loginToggle.classList.add("text-blue-500", "border-blue-500");
       registerToggle.classList.remove("text-blue-500", "border-blue-500");
       emailField.classList.add("hidden");
       emailField.required = false;
       slider.style.left = "0%";
-      updateUI();
-    });
+    }
 
-    registerToggle.addEventListener("click", () => {
+    function switchToRegister() {
       isLogin = false;
       registerToggle.classList.add("text-blue-500", "border-blue-500");
       loginToggle.classList.remove("text-blue-500", "border-blue-500");
       emailField.classList.remove("hidden");
       emailField.required = true;
       slider.style.left = "50%";
+    }
+
+    loginToggle.addEventListener("click", () => {
+      switchToLogin();
+      updateUI();
+    });
+
+    registerToggle.addEventListener("click", () => {
+      switchToRegister();
       updateUI();
     });
 
@@ -121,34 +130,43 @@ if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
       document.getElementById("infoText").innerText = `Currently: ${(isLogin ? "Login" : "Register")} as ${selectedRole}`;
     }
 
-   document.getElementById("roleForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  
-  const formData = new URLSearchParams();
-  formData.append("username", document.getElementById("username").value);
-  formData.append("password", document.getElementById("password").value);
-  formData.append("email", document.getElementById("email").value);
-  formData.append("role", selectedRole.toLowerCase().trim());
-  formData.append("action", isLogin ? "login" : "register");
+    // Form Submission
+    document.getElementById("roleForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      
+      const actionType = isLogin ? "login" : "register";
+      const formData = new URLSearchParams();
+      formData.append("username", document.getElementById("username").value);
+      formData.append("password", document.getElementById("password").value);
+      formData.append("email", document.getElementById("email").value);
+      formData.append("role", selectedRole.toLowerCase().trim());
+      formData.append("action", actionType);
 
-  fetch('auth.php', {
-    method: 'POST',
-    body: formData
-  })
-  .then(res => res.json())
-  .then(data => {
-    console.log(data);
-    if (data.status) {
-      window.location.replace(data.redirect); 
-    } else {
-      alert(data.msg);
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert("Connection error. Check console.");
-  });
-});
+      fetch('auth.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status) {
+          if (actionType === "register") {
+            // If registered successfully, don't redirect. Alert and switch to login.
+            alert("Registration successful! Please login now.");
+            switchToLogin();
+            updateUI();
+          } else {
+            // If login successful, redirect to dashboard
+            window.location.replace(data.redirect); 
+          }
+        } else {
+          alert(data.msg);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert("Connection error.");
+      });
+    });
   </script>
 </body>
 </html>

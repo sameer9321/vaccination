@@ -53,9 +53,6 @@ include "../base/header.php";
 ?>
 
 <div class="container-fluid">
-    <div class="block-header">
-        <h2>Parent Association Requests</h2>
-    </div>
 
     <?php if (isset($_GET['msg'])): ?>
         <div class="alert alert-info">Action processed successfully.</div>

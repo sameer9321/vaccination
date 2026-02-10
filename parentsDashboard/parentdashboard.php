@@ -12,6 +12,7 @@ $userId = (int)($_SESSION["user_id"] ?? 0);
 $username = (string)($_SESSION["username"] ?? "Parent");
 $parentId = (int)($_SESSION["parent_id"] ?? 0);
 
+// Auto-create/link parent profile if missing
 if ($parentId <= 0 && $userId > 0) {
     $stmtU = mysqli_prepare($conn, "SELECT email FROM users WHERE id = ? LIMIT 1");
     mysqli_stmt_bind_param($stmtU, "i", $userId);
@@ -37,11 +38,11 @@ if ($parentId <= 0 && $userId > 0) {
     }
 }
 
-$totalChildren = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM children WHERE parent_id = $parentId"))['total'];
-$totalUpcoming = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings b JOIN children c ON b.child_id = c.child_id WHERE c.parent_id = $parentId AND b.booking_date >= CURDATE()"))['total'];
-$totalPending = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM hospital_requests WHERE parent_id = $parentId AND status = 'Pending'"))['total'];
+// Statistics Queries
+$totalChildren  = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM children WHERE parent_id = $parentId"))['total'];
+$totalUpcoming  = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings b JOIN children c ON b.child_id = c.child_id WHERE c.parent_id = $parentId AND b.booking_date >= CURDATE()"))['total'];
+$totalPending   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM hospital_requests WHERE parent_id = $parentId AND status = 'Pending'"))['total'];
 $totalCompleted = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM bookings b JOIN children c ON b.child_id = c.child_id WHERE c.parent_id = $parentId AND b.status IN ('Vaccinated', 'Completed')"))['total'];
-// Missing query for the 5th card
 $totalHospitals = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM hospitals"))['total'];
 
 $upcomingList = mysqli_query($conn, "SELECT c.child_name, b.vaccine_name, b.booking_date, b.status FROM bookings b JOIN children c ON b.child_id = c.child_id WHERE c.parent_id = $parentId AND b.booking_date >= CURDATE() ORDER BY b.booking_date ASC LIMIT 4");
@@ -49,103 +50,85 @@ $upcomingList = mysqli_query($conn, "SELECT c.child_name, b.vaccine_name, b.book
 include "../base/header.php";
 ?>
 
-<div class="container-fluid">
-    <div class="block-header">
-        <div class="row">
-            <div class="col-lg-7 col-md-6 col-sm-12">
-                <ul class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="parentdashboard.php"><i class="fa fa-dashboard"></i></a></li>
-                    <li class="breadcrumb-item active">Welcome, <?= htmlspecialchars($username) ?></li>
-                </ul>
+<style>
+    .section-title { font-weight: 700; margin: 30px 0 15px; color: #333; }
+    .menu-card { 
+        border-radius: 14px; 
+        padding: 22px; 
+        text-align: center; 
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08); 
+        transition: .25s; 
+        background: #fff;
+        height: 100%;
+    }
+    .menu-card:hover { transform: translateY(-6px); box-shadow: 0 10px 20px rgba(0,0,0,0.12); }
+    .stat { font-size: 28px; font-weight: 700; display: block; }
+    .stat-label { font-size: 11px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    .icon-box { color: #007bff; margin-bottom: 15px; }
+    .card { border: none; border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="row g-3 mb-4">
+        <?php
+        $stats = [
+            ["Total Children", $totalChildren, "primary", "fa-child"],
+            ["Upcoming", $totalUpcoming, "success", "fa-calendar-check-o"],
+            ["Pending Requests", $totalPending, "warning", "fa-clock-o"],
+            ["Vaccinated", $totalCompleted, "info", "fa-file-text"],
+            ["Hospitals", $totalHospitals, "secondary", "fa-hospital-o"]
+        ];
+
+        foreach($stats as $s) {
+        ?>
+        <div class="col">
+            <div class="menu-card bg-<?php echo $s[2]; ?> text-white">
+                <i class="fa <?php echo $s[3]; ?> mb-2"></i>
+                <span class="stat"><?php echo $s[1]; ?></span>
+                <span class="stat-label"><?php echo $s[0]; ?></span>
             </div>
         </div>
+        <?php } ?>
     </div>
 
-    <div class="row clearfix">
-        <div class="col-lg-3 col-md-6 col-sm-12">
-            <div class="card info-box-2 bg-blue">
-                <div class="body">
-                    <div class="icon"><i class="fa fa-child"></i></div>
-                    <div class="content">
-                        <div class="text">TOTAL CHILDREN</div>
-                        <div class="number"><?= $totalChildren ?></div>
-                    </div>
-                </div>
-                <a href="childDetails.php" class="card-footer text-white text-center d-block py-2" style="background: rgba(0,0,0,0.1); text-decoration:none;">
-                    View Details <i class="fa fa-arrow-circle-right ms-1"></i>
-                </a>
-            </div>
-        </div>
+    <h5 class="section-title"><i class="fa fa-th-large me-2"></i>Parent Services</h5>
+    
+    <div class="row g-4">
+        <?php
+        $cards = [
+            ["Child Details", "childDetails.php", "fa-users", "Manage your registered children"],
+            ["Vaccination Dates", "vaccinationDates.php", "fa-calendar", "View upcoming vaccine schedules"],
+            ["Hospital Requests", "requestHospitals.php", "fa-send", "Track requests sent to hospitals"],
+            ["Vaccination History", "vaccinationReport.php", "fa-history", "Download vaccination reports"],
+            ["Book Hospital", "bookHospital.php", "fa-plus-square", "Find and book nearby hospitals"],
+            ["Profile Settings", "profile.php", "fa-user-circle", "Update your contact information"]
+        ];
 
-        <div class="col-lg-3 col-md-6 col-sm-12">
-            <div class="card info-box-2 bg-green">
-                <div class="body">
-                    <div class="icon"><i class="fa fa-calendar-check-o"></i></div>
-                    <div class="content">
-                        <div class="text">UPCOMING VACCINES</div>
-                        <div class="number"><?= $totalUpcoming ?></div>
-                    </div>
+        foreach($cards as $c) {
+        ?>
+        <div class="col-md-3">
+            <div class="menu-card d-flex flex-column justify-content-between">
+                <div>
+                    <div class="icon-box"><i class="fa <?php echo $c[2]; ?> fa-3x"></i></div>
+                    <h6 class="fw-bold"><?php echo $c[0]; ?></h6>
+                    <p class="small text-muted"><?php echo $c[3]; ?></p>
                 </div>
-                <a href="vaccinationDates.php" class="card-footer text-white text-center d-block py-2" style="background: rgba(0,0,0,0.1); text-decoration:none;">
-                    View Schedule <i class="fa fa-arrow-circle-right ms-1"></i>
-                </a>
+                <a href="<?php echo $c[1]; ?>" class="btn btn-outline-primary btn-sm w-100 mt-3">Access</a>
             </div>
         </div>
+        <?php } ?>
+    </div>
 
-        <div class="col-lg-3 col-md-6 col-sm-12">
-            <div class="card info-box-2 bg-orange">
-                <div class="body">
-                    <div class="icon"><i class="fa fa-clock-o"></i></div>
-                    <div class="content">
-                        <div class="text">PENDING REQUESTS</div>
-                        <div class="number"><?= $totalPending ?></div>
-                    </div>
-                </div>
-                <a href="requestHospitals.php" class="card-footer text-white text-center d-block py-2" style="background: rgba(0,0,0,0.1); text-decoration:none;">
-                    Track Requests <i class="fa fa-arrow-circle-right ms-1"></i>
-                </a>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 col-sm-12">
-            <div class="card info-box-2 bg-purple">
-                <div class="body">
-                    <div class="icon"><i class="fa fa-file-text"></i></div>
-                    <div class="content">
-                        <div class="text">VACCINATED RECORDS</div>
-                        <div class="number"><?= $totalCompleted ?></div>
-                    </div>
-                </div>
-                <a href="vaccinationReport.php" class="card-footer text-white text-center d-block py-2" style="background: rgba(0,0,0,0.1); text-decoration:none;">
-                    View History <i class="fa fa-arrow-circle-right ms-1"></i>
-                </a>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 col-sm-12">
-            <div class="card info-box-2 bg-cyan">
-                <div class="body">
-                    <div class="icon"><i class="fa fa-hospital-o"></i></div>
-                    <div class="content">
-                        <div class="text">HOSPITAL LIST</div>
-                        <div class="number"><?= $totalHospitals ?></div>
-                    </div>
-                </div>
-                <a href="bookHospital.php" class="card-footer text-white text-center d-block py-2" style="background: rgba(0,0,0,0.1); text-decoration:none;">
-                    Request Booking <i class="fa fa-arrow-circle-right ms-1"></i>
-                </a>
-            </div>
-        </div>
-    </div> <div class="row clearfix">
-        <div class="col-lg-12 col-md-12 col-sm-12">
+    <div class="row mt-5">
+        <div class="col-lg-12">
             <div class="card">
-                <div class="header">
-                    <h2><strong>Upcoming</strong> Schedules Notification</h2>
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold text-primary"><i class="fa fa-bell-o me-2"></i>Upcoming Vaccination Schedules</h6>
                 </div>
-                <div class="body">
+                <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover m-b-0">
-                            <thead class="thead-light">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
                                 <tr>
                                     <th>#</th>
                                     <th>Child Name</th>
@@ -162,14 +145,16 @@ include "../base/header.php";
                                 ?>
                                 <tr>
                                     <td><?= $i++ ?></td>
-                                    <td><strong><?= htmlspecialchars($u['child_name']) ?></strong></td>
-                                    <td><span class="badge bg-primary"><?= htmlspecialchars($u['vaccine_name']) ?></span></td>
-                                    <td><?= date('d M, Y', strtotime($u['booking_date'])) ?></td>
-                                    <td><span class="badge badge-warning"><?= $u['status'] ?></span></td>
+                                    <td><span class="fw-bold"><?= htmlspecialchars($u['child_name']) ?></span></td>
+                                    <td><span class="badge bg-soft-primary text-primary border border-primary px-3"><?= htmlspecialchars($u['vaccine_name']) ?></span></td>
+                                    <td><i class="fa fa-calendar-o me-1 text-muted"></i> <?= date('d M, Y', strtotime($u['booking_date'])) ?></td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark px-3"><?= $u['status'] ?></span>
+                                    </td>
                                 </tr>
                                 <?php endwhile; else: ?>
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">No upcoming vaccinations found.</td>
+                                    <td colspan="5" class="text-center py-4 text-muted">No upcoming vaccinations found.</td>
                                 </tr>
                                 <?php endif; ?>
                             </tbody>
