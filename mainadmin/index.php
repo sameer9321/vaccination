@@ -1,4 +1,7 @@
 <?php
+// ===============================
+// mainadmin/index.php (UPDATED UI)
+// ===============================
 $pageTitle = "Admin Dashboard";
 include '../base/header.php';
 include '../includes/db.php';
@@ -24,49 +27,71 @@ $vaccines  = countRows($conn, "vaccines");
 
 ?>
 
-<style>
-    .section-title { font-weight: 700; margin: 30px 0 15px; color: #333; }
-    .menu-card { 
-        border-radius: 14px; 
-        padding: 22px; 
-        text-align: center; 
-        box-shadow: 0 6px 18px rgba(0,0,0,0.08); 
-        transition: .25s; 
-        background: #fff;
-        height: 100%;
-    }
-    .menu-card:hover { transform: translateY(-6px); box-shadow: 0 10px 20px rgba(0,0,0,0.12); }
-    .stat { font-size: 28px; font-weight: 700; display: block; }
-    .stat-label { font-size: 14px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
-    .icon-box { color: #007bff; margin-bottom: 15px; }
-</style>
+<!--
+  UI notes:
+  - Cards hover: transition, hover lift, shadow
+  - Stats animate in: fade up keyframe (defined in header.php)
+  - Responsive: grid switches 1 -> 2 -> 3 -> 5 cols
+-->
 
-<div class="container-fluid py-4">
-    <div class="row g-3 mb-4">
+<div class="py-4">
+    <!-- Top stats -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <?php
         $stats = [
-            ["Children", $children, "primary", "fa-users"],
-            ["Bookings", $bookings, "success", "fa-check-circle"],
-            ["Hospitals", $hospitals, "warning", "fa-hospital-o"],
-            ["Pending Requests", $requests, "danger", "fa-clock-o"],
-            ["Vaccine Types", $vaccines, "info", "fa-medkit"]
+            ["Children", $children, "from-indigo-600 to-indigo-500", "fa-users"],
+            ["Bookings", $bookings, "from-emerald-600 to-emerald-500", "fa-check-circle"],
+            ["Hospitals", $hospitals, "from-amber-600 to-amber-500", "fa-hospital-o"],
+            ["Pending Requests", $requests, "from-rose-600 to-rose-500", "fa-clock-o"],
+            ["Vaccine Types", $vaccines, "from-sky-600 to-sky-500", "fa-medkit"]
         ];
 
-        foreach($stats as $s) {
+        foreach($stats as $idx => $s) {
         ?>
-        <div class="col">
-            <div class="menu-card bg-<?php echo $s[2]; ?> text-white">
-                <i class="fa <?php echo $s[3]; ?> mb-2"></i>
-                <span class="stat"><?php echo $s[1]; ?></span>
-                <span class="stat-label"><?php echo $s[0]; ?></span>
+        <div class="twFadeUp" style="animation-delay: <?= (int)$idx * 70 ?>ms;">
+            <div class="group relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-md">
+                <div class="absolute inset-0 bg-gradient-to-br <?= $s[2] ?> opacity-[0.10]"></div>
+
+                <div class="relative p-5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70 text-slate-900 ring-1 ring-white/30">
+                            <i class="fa <?= $s[3] ?> text-lg"></i>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-extrabold tracking-tight text-slate-900"><?= $s[1] ?></div>
+                            <div class="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-600"><?= $s[0] ?></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 h-px w-full bg-slate-100"></div>
+
+                    <div class="mt-4 flex items-center justify-between text-xs text-slate-600">
+                        <span class="inline-flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full bg-slate-400 transition group-hover:bg-slate-900"></span>
+                            Live count
+                        </span>
+                        <span class="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">Updated</span>
+                    </div>
+                </div>
             </div>
         </div>
         <?php } ?>
     </div>
 
-    <h5 class="section-title"><i class="fa fa-gears me-2"></i>System Management</h5>
-    
-    <div class="row g-4">
+    <!-- Section title -->
+    <div class="mt-8 twFadeUp">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-lg font-semibold text-slate-900">
+                    <i class="fa fa-gears mr-2 text-slate-600"></i>System Management
+                </h5>
+                <p class="mt-1 text-sm text-slate-600">Manage hospitals, vaccines, bookings, and reports.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management cards -->
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <?php
         $cards = [
             ["All Child Details", "children.php", "fa-child", "View all registered infants"],
@@ -79,33 +104,59 @@ $vaccines  = countRows($conn, "vaccines");
             ["Booking Details", "bookings.php", "fa-book", "Full booking logs"]
         ];
 
-        foreach($cards as $c) {
+        foreach($cards as $idx => $c) {
         ?>
-        <div class="col-md-3">
-            <div class="menu-card d-flex flex-column justify-content-between">
-                <div>
-                    <div class="icon-box"><i class="fa <?php echo $c[2]; ?> fa-3x"></i></div>
-                    <h6><?php echo $c[0]; ?></h6>
-                    <p class="small text-muted"><?php echo $c[3]; ?></p>
+        <div class="twFadeUp" style="animation-delay: <?= 120 + (int)$idx * 60 ?>ms;">
+            <div class="group h-full rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-md">
+                <div class="flex items-start gap-4">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-200 transition group-hover:bg-slate-900 group-hover:text-white">
+                        <i class="fa <?= $c[2] ?> text-xl"></i>
+                    </div>
+
+                    <div class="min-w-0">
+                        <h6 class="truncate text-sm font-semibold text-slate-900"><?= $c[0] ?></h6>
+                        <p class="mt-1 text-sm text-slate-600"><?= $c[3] ?></p>
+                    </div>
                 </div>
-                <a href="<?php echo $c[1]; ?>" class="btn btn-outline-primary btn-sm w-100 mt-3">Manage</a>
+
+                <div class="mt-5 flex items-center justify-between">
+                    <span class="text-xs text-slate-500">Manage module</span>
+
+                    <a href="<?= $c[1] ?>"
+                       class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.99]">
+                        Manage
+                        <i class="fa fa-arrow-right"></i>
+                    </a>
+                </div>
             </div>
         </div>
         <?php } ?>
     </div>
 
     <?php if($requests > 0): ?>
-    <div class="row mt-5">
-        <div class="col-md-12">
-            <div class="alert alert-important alert-danger d-flex align-items-center" role="alert">
-                <i class="fa fa-exclamation-triangle fa-2x me-3"></i>
-                <div>
-                    <strong>Action Required:</strong> You have <?php echo $requests; ?> parent requests awaiting approval. 
-                    <a href="requests.php" class="alert-link">Click here to process them.</a>
+    <div class="mt-8 twFadeUp">
+        <div class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-rose-200">
+            <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-start gap-3">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-700 ring-1 ring-rose-100">
+                        <i class="fa fa-exclamation-triangle text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-900">Action Required</div>
+                        <div class="mt-1 text-sm text-slate-600">
+                            You have <span class="font-semibold text-rose-700"><?= $requests ?></span> parent requests awaiting approval.
+                        </div>
+                    </div>
                 </div>
+
+                <a href="requests.php"
+                   class="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 active:scale-[0.99]">
+                    Review Requests
+                </a>
             </div>
         </div>
     </div>
     <?php endif; ?>
 </div>
+
 <?php include "../base/footer.php"; ?>

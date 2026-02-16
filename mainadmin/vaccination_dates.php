@@ -11,8 +11,8 @@ $query = "
         DATEDIFF(b.booking_date, CURDATE()) as days_remaining
     FROM bookings b
     JOIN children c ON c.child_id = b.child_id
-    WHERE b.booking_date >= CURDATE() 
-    AND (b.status IS NULL OR b.status NOT IN ('Completed', 'Vaccinated', 'Done'))
+    WHERE b.booking_date >= CURDATE()
+      AND (b.status IS NULL OR b.status NOT IN ('Completed', 'Vaccinated', 'Done'))
     ORDER BY b.booking_date ASC";
 
 $result = mysqli_query($conn, $query);
@@ -22,55 +22,106 @@ if (!$result) {
 }
 ?>
 
-<style>
-    .date-card { border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 25px; background: #fff; }
-    .status-urgent { color: #dc3545; font-weight: 700; }
-    .status-upcoming { color: #0d6efd; font-weight: 600; }
-</style>
+<!--
+  Responsive + no ugly page scrolling:
+  - Uses Tailwind layout (like your updated dashboards)
+  - Table is inside overflow-x-auto container only, so the page doesn't scroll sideways
+  - Nice badges, urgent highlighting, small animations (twFadeUp)
+-->
 
-<div class="container py-4">
-    <div class="card date-card">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="m-0"><i class="fa fa-calendar text-primary me-2"></i>Upcoming Schedules</h4>
-            <span class="badge bg-info p-2">Total Upcoming: <?= mysqli_num_rows($result); ?></span>
+<div class="py-4">
+    <div class="twFadeUp rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                    <span class="h-2 w-2 rounded-full bg-sky-500"></span>
+                    Admin view
+                </div>
+
+                <h2 class="mt-3 text-lg font-semibold text-slate-900 sm:text-xl">
+                    <i class="fa fa-calendar mr-2 text-sky-600"></i>
+                    Upcoming Schedules
+                </h2>
+                <p class="mt-1 text-sm text-slate-600">All pending vaccinations with time remaining.</p>
+            </div>
+
+            <div class="inline-flex items-center gap-2 self-start sm:self-center">
+                <span class="inline-flex items-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm">
+                    Total Upcoming: <?= mysqli_num_rows($result); ?>
+                </span>
+            </div>
         </div>
+    </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover border align-middle text-center">
-                <thead class="table-light">
+    <div class="twFadeUp mt-5 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                     <tr>
-                        <th>Child Name</th>
-                        <th>Vaccine Type</th>
-                        <th>Scheduled Date</th>
-                        <th>Time Remaining</th>
+                        <th class="whitespace-nowrap px-5 py-3 sm:px-6">Child Name</th>
+                        <th class="whitespace-nowrap px-5 py-3 sm:px-6">Vaccine Type</th>
+                        <th class="whitespace-nowrap px-5 py-3 sm:px-6">Scheduled Date</th>
+                        <th class="whitespace-nowrap px-5 py-3 sm:px-6">Time Remaining</th>
                     </tr>
                 </thead>
-                <tbody>
+
+                <tbody class="divide-y divide-slate-100">
                     <?php if (mysqli_num_rows($result) > 0): ?>
-                        <?php while ($r = mysqli_fetch_assoc($result)): 
-                            $days = $r['days_remaining'];
-                            $timeLabel = ($days == 0) ? "Today" : (($days == 1) ? "Tomorrow" : $days . " days left");
-                            $labelClass = ($days <= 2) ? "status-urgent" : "status-upcoming";
+                        <?php while ($r = mysqli_fetch_assoc($result)):
+                            $days = (int)($r['days_remaining'] ?? 0);
+                            $timeLabel = ($days === 0) ? "Today" : (($days === 1) ? "Tomorrow" : $days . " days left");
+                            $isUrgent = ($days <= 2);
                         ?>
-                            <tr>
-                                <td class="fw-bold"><?= htmlspecialchars($r['child_name']) ?></td>
-                                <td><span class="badge btn-outline-secondary text-dark border"><?= htmlspecialchars($r['vaccine_name']) ?></span></td>
-                                <td><?= date('M d, Y', strtotime($r['booking_date'])) ?></td>
-                                <td class="<?= $labelClass ?>">
-                                    <i class="fa fa-clock-o me-1"></i> <?= $timeLabel ?>
+                            <tr class="transition hover:bg-slate-50">
+                                <td class="px-5 py-4 sm:px-6">
+                                    <div class="font-semibold text-slate-900"><?= htmlspecialchars($r['child_name']) ?></div>
+                                </td>
+
+                                <td class="px-5 py-4 sm:px-6">
+                                    <span class="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                        <?= htmlspecialchars($r['vaccine_name']) ?>
+                                    </span>
+                                </td>
+
+                                <td class="whitespace-nowrap px-5 py-4 text-slate-700 sm:px-6">
+                                    <i class="fa fa-calendar-o mr-1 text-slate-400"></i>
+                                    <?= date('M d, Y', strtotime($r['booking_date'])) ?>
+                                </td>
+
+                                <td class="whitespace-nowrap px-5 py-4 sm:px-6">
+                                    <?php if ($isUrgent): ?>
+                                        <span class="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
+                                            <i class="fa fa-clock-o mr-2"></i>
+                                            <?= htmlspecialchars($timeLabel) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100">
+                                            <i class="fa fa-clock-o mr-2"></i>
+                                            <?= htmlspecialchars($timeLabel) ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="4" class="py-5 text-muted">
-                                <i class="fa fa-info-circle fa-2x mb-2"></i><br>
-                                No upcoming vaccinations scheduled.
+                            <td colspan="4" class="px-5 py-12 text-center text-sm text-slate-600 sm:px-6">
+                                <div class="mx-auto flex max-w-md flex-col items-center gap-2">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+                                        <i class="fa fa-info-circle"></i>
+                                    </div>
+                                    <div class="font-semibold text-slate-900">No upcoming vaccinations scheduled.</div>
+                                    <div class="text-slate-600">When bookings are added, they will show up here.</div>
+                                </div>
                             </td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+
+        <div class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500 sm:px-6">
+            Tip: On small screens, scroll sideways to view all columns.
         </div>
     </div>
 </div>

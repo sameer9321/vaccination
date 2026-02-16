@@ -2,7 +2,6 @@
 session_start();
 include "includes/db.php";
 
-// Redirect logic for users already logged in
 if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
     $role = strtolower($_SESSION["role"]);
     if ($role === "parent") { header("Location: parentsDashboard/parentdashboard.php"); exit; }
@@ -14,159 +13,168 @@ if (isset($_SESSION["user_id"]) && isset($_SESSION["role"])) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vaccination Portal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/feather-icons"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaccination Portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/feather-icons"></script>
 </head>
+
 <body class="bg-gradient-to-r from-blue-200 via-blue-100 to-white flex items-center justify-center min-h-screen font-sans relative overflow-hidden">
 
-  <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-10 relative z-10">
-    <div class="text-center mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Vaccination Portal</h1>
-      <p class="text-gray-500 mt-2">Secure Access for Admins, Parents & Hospitals</p>
-    </div>
+<div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-10 relative z-10">
 
-    <div class="flex justify-between mb-6">
-      <button id="adminBtn" class="role-btn flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-500 bg-blue-100 text-blue-600 font-semibold transition transform hover:scale-105">
-        <i data-feather="user-check"></i> Admin
-      </button>
-      <button id="parentBtn" class="role-btn flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-semibold transition transform hover:scale-105">
-        <i data-feather="user"></i> Parent
-      </button>
-      <button id="hospitalBtn" class="role-btn flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-semibold transition transform hover:scale-105">
-        <i data-feather="home"></i> Hospital
-      </button>
-    </div>
-    
-    <div class="flex justify-center mb-6 border-b border-gray-200 relative">
-      <button id="loginToggle" class="toggle-btn px-6 py-2 font-semibold border-b-2 border-blue-500 text-blue-500 transition relative z-10">Login</button>
-      <button id="registerToggle" class="toggle-btn px-6 py-2 font-semibold text-gray-400 transition relative z-10 hidden">Register</button>
-      <div class="absolute bottom-0 left-0 w-1/2 h-0.5 bg-blue-500 transition-all duration-300" id="slider"></div>
-    </div>
+<div class="text-center mb-6">
+<h1 class="text-3xl font-bold text-gray-800">Vaccination Portal</h1>
+<p class="text-gray-500 mt-2">Secure Access for Admins, Parents & Hospitals</p>
+</div>
 
-    <form id="roleForm" class="space-y-4">
-      <input type="text" id="username" placeholder="Username" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-      <input type="password" id="password" placeholder="Password" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition"/>
-      <input type="email" id="email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition hidden"/>
+<div class="flex justify-between mb-6">
+<button id="adminBtn" class="role-btn flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-500 bg-blue-100 text-blue-600 font-semibold transition hover:scale-105">
+<i data-feather="user-check"></i> Admin
+</button>
+<button id="parentBtn" class="role-btn flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-semibold transition hover:scale-105">
+<i data-feather="user"></i> Parent
+</button>
+<button id="hospitalBtn" class="role-btn flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-semibold transition hover:scale-105">
+<i data-feather="home"></i> Hospital
+</button>
+</div>
 
-      <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded-lg font-semibold shadow-lg hover:from-purple-500 hover:to-blue-500 transition transform hover:scale-105 flex items-center justify-center gap-2">
-        <i data-feather="log-in"></i>
-        <span id="submitText">Login as Admin</span>
-      </button>
-    </form>
+<div class="flex justify-center mb-6 border-b border-gray-200 relative">
+<button id="loginToggle" class="toggle-btn px-6 py-2 font-semibold border-b-2 border-blue-500 text-blue-500 transition relative z-10">Login</button>
+<button id="registerToggle" class="toggle-btn px-6 py-2 font-semibold text-gray-400 transition relative z-10 hidden">Register</button>
+<div class="absolute bottom-0 left-0 w-1/2 h-0.5 bg-blue-500 transition-all duration-300" id="slider"></div>
+</div>
 
-    <p id="infoText" class="mt-4 text-center text-gray-500 italic">Currently: Login as Admin</p>
-  </div>
+<form id="roleForm" class="space-y-4">
 
-  <script>
-    feather.replace();
+<input type="text" id="username" placeholder="Username" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
 
-    const roleButtons = document.querySelectorAll(".role-btn");
-    const loginToggle = document.getElementById("loginToggle");
-    const registerToggle = document.getElementById("registerToggle");
-    const emailField = document.getElementById("email");
-    const slider = document.getElementById("slider");
-    
-    let selectedRole = "Admin";
-    let isLogin = true;
+<input type="password" id="password" placeholder="Password" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
 
-    // Handle Role Switching
-    roleButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        selectedRole = btn.innerText.trim();
-        
-        // Update Button UI
-        roleButtons.forEach(b => {
-            b.classList.remove("bg-blue-100", "text-blue-600", "border-blue-500");
-            b.classList.add("border-gray-300", "text-gray-700");
-        });
-        btn.classList.add("bg-blue-100", "text-blue-600", "border-blue-500");
+<input type="email" id="email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 hidden"/>
 
-        // Logic: Hide register for Admin
-        if (selectedRole === "Admin") {
-            registerToggle.classList.add("hidden");
-            switchToLogin(); // Force switch to login if they were on register tab
-        } else {
-            registerToggle.classList.remove("hidden");
-        }
-        
-        updateUI();
-      });
-    });
+<!-- NEW HOSPITAL FIELDS -->
+<input type="text" id="phone" placeholder="Phone Number" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 hidden"/>
 
-    // Toggle Logic Functions
-    function switchToLogin() {
-      isLogin = true;
-      loginToggle.classList.add("text-blue-500", "border-blue-500");
-      registerToggle.classList.remove("text-blue-500", "border-blue-500");
-      emailField.classList.add("hidden");
-      emailField.required = false;
-      slider.style.left = "0%";
-    }
+<input type="text" id="address" placeholder="Hospital Address" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 hidden"/>
 
-    function switchToRegister() {
-      isLogin = false;
-      registerToggle.classList.add("text-blue-500", "border-blue-500");
-      loginToggle.classList.remove("text-blue-500", "border-blue-500");
-      emailField.classList.remove("hidden");
-      emailField.required = true;
-      slider.style.left = "50%";
-    }
+<button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded-lg font-semibold shadow-lg hover:from-purple-500 hover:to-blue-500 transition hover:scale-105 flex items-center justify-center gap-2">
+<i data-feather="log-in"></i>
+<span id="submitText">Login as Admin</span>
+</button>
 
-    loginToggle.addEventListener("click", () => {
-      switchToLogin();
-      updateUI();
-    });
+</form>
 
-    registerToggle.addEventListener("click", () => {
-      switchToRegister();
-      updateUI();
-    });
+<p id="infoText" class="mt-4 text-center text-gray-500 italic">Currently: Login as Admin</p>
 
-    function updateUI() {
-      document.getElementById("submitText").innerText = (isLogin ? "Login" : "Register") + " as " + selectedRole;
-      document.getElementById("infoText").innerText = `Currently: ${(isLogin ? "Login" : "Register")} as ${selectedRole}`;
-    }
+</div>
 
-    // Form Submission
-    document.getElementById("roleForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      
-      const actionType = isLogin ? "login" : "register";
-      const formData = new URLSearchParams();
-      formData.append("username", document.getElementById("username").value);
-      formData.append("password", document.getElementById("password").value);
-      formData.append("email", document.getElementById("email").value);
-      formData.append("role", selectedRole.toLowerCase().trim());
-      formData.append("action", actionType);
+<script>
+feather.replace();
 
-      fetch('auth.php', {
-        method: 'POST',
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status) {
-          if (actionType === "register") {
-            // If registered successfully, don't redirect. Alert and switch to login.
-            alert("Registration successful! Please login now.");
-            switchToLogin();
-            updateUI();
-          } else {
-            // If login successful, redirect to dashboard
-            window.location.replace(data.redirect); 
-          }
-        } else {
-          alert(data.msg);
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert("Connection error.");
-      });
-    });
-  </script>
+const roleButtons = document.querySelectorAll(".role-btn");
+const loginToggle = document.getElementById("loginToggle");
+const registerToggle = document.getElementById("registerToggle");
+const emailField = document.getElementById("email");
+const phoneField = document.getElementById("phone");
+const addressField = document.getElementById("address");
+const slider = document.getElementById("slider");
+
+let selectedRole = "Admin";
+let isLogin = true;
+
+roleButtons.forEach(btn => {
+btn.addEventListener("click", () => {
+selectedRole = btn.innerText.trim();
+
+roleButtons.forEach(b => {
+b.classList.remove("bg-blue-100", "text-blue-600", "border-blue-500");
+b.classList.add("border-gray-300", "text-gray-700");
+});
+btn.classList.add("bg-blue-100", "text-blue-600", "border-blue-500");
+
+if (selectedRole === "Admin") {
+registerToggle.classList.add("hidden");
+switchToLogin();
+} else {
+registerToggle.classList.remove("hidden");
+}
+updateUI();
+});
+});
+
+function switchToLogin() {
+isLogin = true;
+emailField.classList.add("hidden");
+phoneField.classList.add("hidden");
+addressField.classList.add("hidden");
+emailField.required = false;
+phoneField.required = false;
+addressField.required = false;
+slider.style.left = "0%";
+}
+
+function switchToRegister() {
+isLogin = false;
+emailField.classList.remove("hidden");
+emailField.required = true;
+
+if (selectedRole === "Hospital") {
+phoneField.classList.remove("hidden");
+addressField.classList.remove("hidden");
+phoneField.required = true;
+addressField.required = true;
+} else {
+phoneField.classList.add("hidden");
+addressField.classList.add("hidden");
+phoneField.required = false;
+addressField.required = false;
+}
+slider.style.left = "50%";
+}
+
+loginToggle.addEventListener("click", () => { switchToLogin(); updateUI(); });
+registerToggle.addEventListener("click", () => { switchToRegister(); updateUI(); });
+
+function updateUI() {
+document.getElementById("submitText").innerText = (isLogin ? "Login" : "Register") + " as " + selectedRole;
+document.getElementById("infoText").innerText = `Currently: ${(isLogin ? "Login" : "Register")} as ${selectedRole}`;
+}
+
+document.getElementById("roleForm").addEventListener("submit", (e) => {
+e.preventDefault();
+
+const actionType = isLogin ? "login" : "register";
+const formData = new URLSearchParams();
+
+formData.append("username", document.getElementById("username").value);
+formData.append("password", document.getElementById("password").value);
+formData.append("email", document.getElementById("email").value);
+formData.append("phone", document.getElementById("phone").value);
+formData.append("address", document.getElementById("address").value);
+formData.append("role", selectedRole.toLowerCase().trim());
+formData.append("action", actionType);
+
+fetch('auth.php', { method: 'POST', body: formData })
+.then(res => res.json())
+.then(data => {
+if (data.status) {
+if (actionType === "register") {
+alert("Registration successful! Please login now.");
+switchToLogin();
+updateUI();
+} else {
+window.location.replace(data.redirect);
+}
+} else {
+alert(data.msg);
+}
+})
+.catch(() => alert("Connection error."));
+});
+</script>
+
 </body>
 </html>

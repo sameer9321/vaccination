@@ -101,97 +101,184 @@ mysqli_stmt_close($stmt);
 include "../base/header.php";
 ?>
 
-<style>
-.cardBox{
-    border-radius:14px;
-    box-shadow:0 6px 18px rgba(0,0,0,0.08);
-    padding:22px;
-    background:#fff;
-}
-.headCell{
-    background:#f5f6fa;
-}
-.pill{
-    display:inline-block;
-    padding:6px 10px;
-    border-radius:18px;
-    font-size:12px;
-}
-.pillOk{ background:#d4edda; color:#155724; }
-.pillWarn{ background:#fff3cd; color:#856404; }
-.pillOther{ background:#e2e3e5; color:#383d41; }
-.btnLike{
-    display:inline-block;
-    padding:8px 12px;
-    border-radius:8px;
-    text-decoration:none;
-    border:1px solid #0d6efd;
-    color:#0d6efd;
-}
-.note{
-    color:#666;
-    margin:0;
-}
-</style>
+<!--
+  Responsive notes:
+  - No sideways scrolling on mobile
+  - On mobile: vaccine, hospital, date, status go under child name
+  - Desktop keeps full columns
+  - Animations: twFadeUp entrance + hover transitions
+-->
 
-<div class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+<div class="py-4">
+    <!-- Header -->
+    <div class="twFadeUp mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-            <h3 style="margin:0;">Vaccination Report</h3>
-            <p class="note">Previous vaccinations for your children</p>
+            <div class="flex items-center gap-2 text-sm text-slate-500">
+                <a href="parentdashboard.php" class="inline-flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white hover:text-slate-700">
+                    <i class="fa fa-dashboard"></i>
+                    <span>Parent</span>
+                </a>
+                <span class="text-slate-300">/</span>
+                <span class="text-slate-700">Vaccination Report</span>
+            </div>
+
+            <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                Vaccination Report
+            </h2>
+            <p class="mt-1 text-sm text-slate-600">
+                Previous vaccinations for your children.
+            </p>
         </div>
-        <a class="btnLike" href="parentdashboard.php">Back</a>
+
+        <div class="flex">
+            <a href="parentdashboard.php"
+               class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-indigo-200 transition hover:bg-indigo-50 active:scale-[0.99]">
+                Back
+            </a>
+        </div>
     </div>
 
-    <div class="cardBox">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div style="font-size:14px; color:#333;">History</div>
-            <div style="background:#0d6efd; color:#fff; padding:6px 10px; border-radius:16px;">
-                Total: <?= count($reports) ?>
+    <!-- Card -->
+    <div class="twFadeUp rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+        <div class="border-b border-slate-100 px-5 py-4 sm:px-6">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-900 m-0">History</h3>
+                    <p class="mt-1 text-sm text-slate-600">Completed and past date records.</p>
+                </div>
+
+                <span class="inline-flex items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
+                    Total: <?= count($reports) ?>
+                </span>
             </div>
         </div>
 
-        <div style="overflow:auto;">
-            <table class="table table-bordered" style="width:100%; text-align:center; margin:0; vertical-align:middle;">
-                <thead>
+        <!-- Table (no scroll, hide columns on small screens) -->
+        <div class="w-full">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
                     <tr>
-                        <th class="headCell" style="width:70px;">No</th>
-                        <th class="headCell">Child</th>
-                        <th class="headCell">Vaccine</th>
-                        <th class="headCell">Hospital</th>
-                        <th class="headCell">Date</th>
-                        <th class="headCell">Status</th>
-                        <th class="headCell">Report</th>
+                        <th class="px-4 py-3 sm:px-6">No</th>
+                        <th class="px-4 py-3 sm:px-6">Child</th>
+                        <th class="hidden sm:table-cell px-4 py-3 sm:px-6">Vaccine</th>
+                        <th class="hidden md:table-cell px-4 py-3 sm:px-6">Hospital</th>
+                        <th class="hidden lg:table-cell px-4 py-3 sm:px-6">Date</th>
+                        <th class="hidden lg:table-cell px-4 py-3 sm:px-6">Status</th>
+                        <th class="hidden xl:table-cell px-4 py-3 sm:px-6">Report</th>
                     </tr>
                 </thead>
-                <tbody>
+
+                <tbody class="divide-y divide-slate-100">
                     <?php if (count($reports) > 0): ?>
                         <?php $i = 1; foreach ($reports as $r): ?>
                             <?php
-                                $st = strtolower((string)($r["status"] ?? ""));
-                                $cls = "pillOther";
-                                if ($st === "pending") $cls = "pillWarn";
-                                if (in_array($st, ["done","completed","vaccinated"], true)) $cls = "pillOk";
+                                $stRaw = (string)($r["status"] ?? "");
+                                $st = strtolower($stRaw);
+                                $isOk = in_array($st, ["done","completed","vaccinated"], true);
+                                $isPending = ($st === "pending");
                             ?>
-                            <tr>
-                                <td><?= $i++ ?></td>
-                                <td><?= htmlspecialchars($r["child_name"] ?? "") ?></td>
-                                <td><?= htmlspecialchars($r["vaccine_name"] ?? "") ?></td>
-                                <td><?= htmlspecialchars($r["hospital_name"] ?? "") ?></td>
-                                <td><?= htmlspecialchars($r["booking_date"] ?? "") ?></td>
-                                <td><span class="pill <?= $cls ?>"><?= htmlspecialchars($r["status"] ?? "") ?></span></td>
-                                <td>
-                                    <span style="color:#666;">Not available</span>
+                            <tr class="transition hover:bg-slate-50">
+                                <td class="px-4 py-4 text-slate-700 sm:px-6"><?= $i++ ?></td>
+
+                                <!-- Child (mobile shows all details) -->
+                                <td class="px-4 py-4 sm:px-6">
+                                    <div class="font-semibold text-slate-900"><?= htmlspecialchars($r["child_name"] ?? "") ?></div>
+
+                                    <div class="mt-1 text-xs text-slate-500 sm:hidden">
+                                        Vaccine: <?= htmlspecialchars($r["vaccine_name"] ?? "N/A") ?>
+                                    </div>
+
+                                    <div class="mt-1 text-xs text-slate-500 md:hidden">
+                                        Hospital: <?= htmlspecialchars($r["hospital_name"] ?? "N/A") ?>
+                                    </div>
+
+                                    <div class="mt-1 text-xs text-slate-500 lg:hidden">
+                                        Date: <?= htmlspecialchars($r["booking_date"] ?? "") ?>
+                                    </div>
+
+                                    <div class="mt-2 lg:hidden">
+                                        <?php if ($isOk): ?>
+                                            <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                                                <?= htmlspecialchars($stRaw ?: "Completed") ?>
+                                            </span>
+                                        <?php elseif ($isPending): ?>
+                                            <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                                                <?= htmlspecialchars($stRaw ?: "Pending") ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                                <?= htmlspecialchars($stRaw ?: "Unknown") ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="mt-2 text-xs text-slate-500 xl:hidden">
+                                        Report: Not available
+                                    </div>
+                                </td>
+
+                                <!-- Vaccine (sm+) -->
+                                <td class="hidden sm:table-cell px-4 py-4 text-slate-700 sm:px-6">
+                                    <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
+                                        <?= htmlspecialchars($r["vaccine_name"] ?? "N/A") ?>
+                                    </span>
+                                </td>
+
+                                <!-- Hospital (md+) -->
+                                <td class="hidden md:table-cell px-4 py-4 text-slate-700 sm:px-6">
+                                    <span class="inline-flex items-center gap-2">
+                                        <i class="fa fa-hospital-o text-slate-400"></i>
+                                        <?= htmlspecialchars($r["hospital_name"] ?? "N/A") ?>
+                                    </span>
+                                </td>
+
+                                <!-- Date (lg+) -->
+                                <td class="hidden lg:table-cell px-4 py-4 text-slate-700 sm:px-6">
+                                    <?= htmlspecialchars($r["booking_date"] ?? "") ?>
+                                </td>
+
+                                <!-- Status (lg+) -->
+                                <td class="hidden lg:table-cell px-4 py-4 sm:px-6">
+                                    <?php if ($isOk): ?>
+                                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                                            <?= htmlspecialchars($stRaw ?: "Completed") ?>
+                                        </span>
+                                    <?php elseif ($isPending): ?>
+                                        <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                                            <?= htmlspecialchars($stRaw ?: "Pending") ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                            <?= htmlspecialchars($stRaw ?: "Unknown") ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+
+                                <!-- Report (xl+) -->
+                                <td class="hidden xl:table-cell px-4 py-4 text-slate-600 sm:px-6">
+                                    Not available
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" style="color:#666;">No previous vaccination records found.</td>
+                            <td colspan="7" class="px-5 py-12 text-center text-slate-600 sm:px-6">
+                                <div class="mx-auto flex max-w-md flex-col items-center gap-2">
+                                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+                                        <i class="fa fa-file-text-o"></i>
+                                    </div>
+                                    <div class="font-semibold text-slate-900">No previous vaccination records found.</div>
+                                    <div class="text-sm text-slate-600">Once vaccinations are completed, they will appear here.</div>
+                                </div>
+                            </td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+
+        <div class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500 sm:px-6">
+            On mobile, details appear under the child name to fit the screen.
         </div>
     </div>
 </div>

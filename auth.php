@@ -5,6 +5,8 @@ include "includes/db.php";
 $username = trim($_POST["username"] ?? "");
 $password = (string)($_POST["password"] ?? "");
 $email    = trim($_POST["email"] ?? "");
+$phone    = trim($_POST["phone"] ?? "");
+$address  = trim($_POST["address"] ?? "");
 $role     = strtolower(trim($_POST["role"] ?? ""));
 $action   = trim($_POST["action"] ?? "");
 
@@ -38,12 +40,10 @@ if ($action === "login") {
     } elseif (!password_verify($password, $user["password"])) {
         $response["msg"] = "Wrong password";
     } else {
-        // Set Sessions only on successful login
         $_SESSION["role"] = $role;
         $_SESSION["user_id"] = (int)$user["id"];
         $_SESSION["username"] = (string)$user["username"];
 
-        // Role-specific session data (Parent)
         if ($role === "parent") {
             $stmtP = mysqli_prepare($conn, "SELECT parent_id FROM parents WHERE email = ? LIMIT 1");
             if ($stmtP) {
@@ -56,7 +56,6 @@ if ($action === "login") {
             }
         }
 
-        // Role-specific session data (Hospital)
         if ($role === "hospital") {
             $stmtH = mysqli_prepare($conn, "SELECT id, hospital_name FROM hospitals WHERE email = ? LIMIT 1");
             if ($stmtH) {
@@ -89,34 +88,55 @@ if ($action === "register") {
         exit;
     }
 
-    if ($username === "" || $password === "" || $email === "" || $role === "") {
-        $response["msg"] = "Please fill all fields";
+    // Hospital requires phone + address too
+    if ($role === "hospital") {
+        if ($username === "" || $password === "" || $email === "" || $phone === "" || $address === "") {
+            $response["msg"] = "Please fill all fields";
+            header("Content-Type: application/json");
+            echo json_encode($response);
+            exit;
+        }
     } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = mysqli_prepare($conn, "INSERT INTO users(username, email, password, role) VALUES(?,?,?,?)");
-        
-        if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "ssss", $username, $email, $hash, $role);
-            if (mysqli_stmt_execute($stmt)) {
-                $newUserId = mysqli_insert_id($conn);
-                mysqli_stmt_close($stmt);
+        if ($username === "" || $password === "" || $email === "" || $role === "") {
+            $response["msg"] = "Please fill all fields";
+            header("Content-Type: application/json");
+            echo json_encode($response);
+            exit;
+        }
+    }
 
-                if ($role === "hospital") {
-                    $stmtInsH = mysqli_prepare($conn, "INSERT INTO hospitals (hospital_name, address, phone, email) VALUES (?, '', '', ?)");
-                    mysqli_stmt_bind_param($stmtInsH, "ss", $username, $email);
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+
+    $stmt = mysqli_prepare($conn, "INSERT INTO users(username, email, password, role) VALUES(?,?,?,?)");
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "ssss", $username, $email, $hash, $role);
+
+        if (mysqli_stmt_execute($stmt)) {
+            $newUserId = mysqli_insert_id($conn);
+            mysqli_stmt_close($stmt);
+
+            if ($role === "hospital") {
+                // Store the new hospital details
+                $stmtInsH = mysqli_prepare(
+                    $conn,
+                    "INSERT INTO hospitals (hospital_name, address, phone, email) VALUES (?, ?, ?, ?)"
+                );
+                if ($stmtInsH) {
+                    mysqli_stmt_bind_param($stmtInsH, "ssss", $username, $address, $phone, $email);
                     mysqli_stmt_execute($stmtInsH);
                     mysqli_stmt_close($stmtInsH);
                 }
-                $response = [
-                    "status" => true,
-                    "msg" => "Registration successful! Please login to continue."
-                ];
-            } else {
-                $response["msg"] = "Registration failed (Username/Email might exist)";
             }
+
+            $response = [
+                "status" => true,
+                "msg" => "Registration successful! Please login to continue."
+            ];
         } else {
-            $response["msg"] = "DB error: " . mysqli_error($conn);
+            $response["msg"] = "Registration failed (Username/Email might exist)";
         }
+    } else {
+        $response["msg"] = "DB error: " . mysqli_error($conn);
     }
 }
 

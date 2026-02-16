@@ -54,89 +54,197 @@ mysqli_stmt_close($stmt);
 include "../base/header.php";
 ?>
 
-<style>
-    .cardBox { border-radius:15px; box-shadow:0 5px 20px rgba(0,0,0,0.05); border:none; background:#fff; padding:20px; }
-    .table thead th { background:#f8f9fa; text-transform:uppercase; font-size:11px; letter-spacing:1px; }
-    .pill { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:700; }
-    .pillPending { background:#fff3cd; color:#856404; }
-    .pillDone { background:#d4edda; color:#155724; }
-    .pillBad { background:#f8d7da; color:#842029; }
-    .highlight-row { background-color: #fff9c4 !important; }
-</style>
+<!--
+  UI notes:
+  - Clean hospital theme: teal + slate
+  - Animations:
+    - twFadeUp (from header.php) for entrance
+    - hover row highlight, button transitions
+  - Responsive:
+    - header stacks on mobile
+    - table scrolls horizontally on small screens
+-->
 
-<div class="container-fluid">
-    <div class="block-header">
-        <h2>Vaccination Records <small>Manage and update patient statuses</small></h2>
+<div class="py-4">
+    <!-- Page header -->
+    <div class="twFadeUp mb-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
+                    <span class="h-2 w-2 rounded-full bg-teal-500"></span>
+                    Vaccination records
+                </div>
+                <h2 class="mt-3 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                    Update Vaccine Status
+                </h2>
+                <p class="mt-1 text-sm text-slate-600">
+                    Manage and update patient statuses.
+                </p>
+            </div>
+
+            <div class="text-sm text-slate-600">
+                Showing <span class="font-semibold text-slate-900"><?= count($rows) ?></span> total appointments
+            </div>
+        </div>
     </div>
 
     <?php if (isset($_GET["updated"])): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>Updated!</strong> Patient record has been modified.
-            <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+        <!-- Success toast-like alert -->
+        <div class="twFadeUp mb-4 rounded-2xl bg-emerald-50 p-4 text-emerald-800 ring-1 ring-emerald-100">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <div class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                        <i class="fa fa-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-semibold">Updated</div>
+                        <div class="mt-1 text-sm">Patient record has been modified.</div>
+                    </div>
+                </div>
+                <a href="updateVaccineStatus.php"
+                   class="inline-flex items-center justify-center rounded-xl bg-white px-3 py-2 text-xs font-semibold text-emerald-700 shadow-sm ring-1 ring-emerald-200 transition hover:bg-emerald-50 active:scale-[0.99]">
+                    Dismiss
+                </a>
+            </div>
         </div>
     <?php endif; ?>
 
-    <div class="cardBox">
-        <div class="row mb-4 align-items-center">
-            <div class="col-md-6">
-                <input type="text" id="tableSearch" class="form-control" placeholder="Search by child or vaccine name...">
+    <!-- Main card -->
+    <div class="twFadeUp rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+        <!-- Toolbar -->
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div class="w-full sm:max-w-md">
+                <div class="relative">
+                    <i class="fa fa-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input
+                        type="text"
+                        id="tableSearch"
+                        class="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-teal-300 focus:ring-4 focus:ring-teal-100"
+                        placeholder="Search by child or vaccine name..."
+                    >
+                </div>
+                <p class="mt-2 text-xs text-slate-500">
+                    Tip: Search matches child name and vaccine name.
+                </p>
             </div>
-            <div class="col-md-6 text-right">
-                <span class="text-muted">Showing <strong><?= count($rows) ?></strong> total appointments</span>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                    <i class="fa fa-filter mr-2 text-slate-500"></i>
+                    Filter: search
+                </span>
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle" id="statusTable">
-                <thead>
-                    <tr>
-                        <th>Child Name</th>
-                        <th>Age</th>
-                        <th>Vaccine</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th class="text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($rows)): foreach ($rows as $row): 
+        <!-- Table -->
+        <div class="w-full">
+            <table class="min-w-full text-left text-sm" id="statusTable">
+                <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+    <tr>
+        <th class="px-4 py-3">Child</th>
+        <th class="px-4 py-3 hidden md:table-cell">Age</th>
+        <th class="px-4 py-3">Vaccine</th>
+        <th class="px-4 py-3 hidden sm:table-cell">Date</th>
+        <th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3 text-right">Action</th>
+    </tr>
+</thead>
+
+
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (!empty($rows)): foreach ($rows as $row):
                         $st = strtolower($row["status"]);
-                        $cls = "pill";
-                        if ($st === "pending") $cls .= " pillPending";
-                        elseif (in_array($st, ["vaccinated","done","completed"])) $cls .= " pillDone";
-                        elseif ($st === "not vaccinated") $cls .= " pillBad";
-                        
-                        // Check if this row was targeted from dashboard
-                        $isFocused = (isset($_GET['focus']) && $_GET['focus'] == $row['booking_id']) ? 'highlight-row' : '';
+                        $isFocused = (isset($_GET['focus']) && $_GET['focus'] == $row['booking_id']);
                     ?>
-                    <tr class="<?= $isFocused ?>">
-                        <td><strong><?= htmlspecialchars($row["child_name"]) ?></strong></td>
-                        <td><?= calc_age_text($row["birth_date"]) ?></td>
-                        <td><span class="badge badge-light border"><?= htmlspecialchars($row["vaccine_name"]) ?></span></td>
-                        <td><?= date('d M Y', strtotime($row["booking_date"])) ?></td>
-                        <td><span class="<?= $cls ?>"><?= strtoupper($row["status"]) ?></span></td>
-                        <td>
-                            <form method="post" class="d-flex gap-2 justify-content-center align-items-center m-0" onsubmit="return confirm('Update this status?');">
-                                <input type="hidden" name="booking_id" value="<?= $row["booking_id"] ?>">
-                                <select name="status" class="form-control form-control-sm mr-2" style="width:140px;">
-                                    <?php
-                                    foreach (["Pending","Vaccinated","Not Vaccinated","Completed"] as $opt) {
-                                        $sel = ($opt === $row["status"]) ? "selected" : "";
-                                        echo "<option value='$opt' $sel>$opt</option>";
-                                    }
-                                    ?>
-                                </select>
-                                <button type="submit" name="status_update" class="btn btn-sm btn-primary btn-round">
-                                    <i class="fa fa-refresh"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+                        <!-- Focus row highlight + hover effect -->
+                       <tr class="transition hover:bg-slate-50">
+    <td class="px-4 py-4">
+        <div class="font-semibold text-slate-900"><?= htmlspecialchars($row["child_name"]) ?></div>
+
+        <!-- Show hidden info under name on mobile -->
+        <div class="mt-1 text-xs text-slate-500 md:hidden">
+            Age: <?= calc_age_text($row["birth_date"]) ?>
+        </div>
+
+        <div class="mt-1 text-xs text-slate-500 sm:hidden">
+            Date: <?= date('d M Y', strtotime($row["booking_date"])) ?>
+        </div>
+    </td>
+
+    <td class="hidden md:table-cell px-4 py-4 text-slate-700">
+        <?= calc_age_text($row["birth_date"]) ?>
+    </td>
+
+    <td class="px-4 py-4">
+        <span class="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100">
+            <?= htmlspecialchars($row["vaccine_name"]) ?>
+        </span>
+    </td>
+
+    <td class="hidden sm:table-cell px-4 py-4 text-slate-700">
+        <?= date('d M Y', strtotime($row["booking_date"])) ?>
+    </td>
+
+    <td class="px-4 py-4">
+        <?php if ($st === "pending"): ?>
+            <span class="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                <?= strtoupper($row["status"]) ?>
+            </span>
+        <?php elseif (in_array($st, ["vaccinated","done","completed"])): ?>
+            <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                <?= strtoupper($row["status"]) ?>
+            </span>
+        <?php else: ?>
+            <span class="inline-flex rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-100">
+                <?= strtoupper($row["status"]) ?>
+            </span>
+        <?php endif; ?>
+    </td>
+
+    <td class="px-4 py-4">
+        <form method="post"
+              class="flex flex-col gap-2 sm:flex-row sm:items-center"
+              onsubmit="return confirm('Update this status?');">
+
+            <input type="hidden" name="booking_id" value="<?= $row["booking_id"] ?>">
+
+            <select name="status"
+                    class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-teal-300 focus:ring-4 focus:ring-teal-100 sm:w-40">
+                <?php
+                foreach (["Pending","Vaccinated","Not Vaccinated","Completed"] as $opt) {
+                    $sel = ($opt === $row["status"]) ? "selected" : "";
+                    echo "<option value='$opt' $sel>$opt</option>";
+                }
+                ?>
+            </select>
+
+            <button type="submit" name="status_update"
+                    class="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 active:scale-[0.98]">
+                Update
+            </button>
+        </form>
+    </td>
+</tr>
+
                     <?php endforeach; else: ?>
-                    <tr><td colspan="6" class="text-center py-4 text-muted">No appointments found.</td></tr>
+                        <tr>
+                            <td colspan="6" class="px-5 py-10 text-center text-sm text-slate-600 sm:px-6">
+                                <div class="mx-auto flex max-w-md flex-col items-center gap-2">
+                                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+                                        <i class="fa fa-folder-open"></i>
+                                    </div>
+                                    <div class="font-semibold text-slate-900">No appointments found.</div>
+                                    <div class="text-slate-600">Once bookings exist, they will appear here.</div>
+                                </div>
+                            </td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
+        </div>
+
+        <div class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500 sm:px-6">
+            Tip: On mobile, swipe sideways to see all columns.
         </div>
     </div>
 </div>
@@ -152,7 +260,7 @@ document.getElementById('tableSearch').addEventListener('keyup', function() {
             rows[i].style.display = "";
         } else {
             rows[i].style.display = "none";
-        }      
+        }
     }
 });
 </script>

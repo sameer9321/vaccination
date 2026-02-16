@@ -120,58 +120,115 @@ if (isset($_POST["save_child"])) {
 include "../base/header.php";
 ?>
 
-<style>
-.cardBox{
-    border-radius:14px;
-    box-shadow:0 6px 18px rgba(0,0,0,0.08);
-    padding:22px;
-    background:#fff;
-}
-.formBox{
-    border-radius:12px;
-    border:1px solid #eef0f5;
-    padding:18px;
-    background:#fff;
-}
-</style>
+<!--
+  Responsive notes:
+  - Centered card on large screens, full width on mobile
+  - Buttons stack on mobile
+  Animations:
+  - twFadeUp entrance on the page section
+  - hover transitions on the card + buttons
+-->
 
-<div class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+<div class="py-4">
+    <!-- Top -->
+    <div class="twFadeUp mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-            <h3 style="margin:0;">Edit Child</h3>
-            <?php if (isset($_GET["error"])): ?>
-                <div style="color:#b00020; margin-top:6px;">Please fill required fields.</div>
-            <?php endif; ?>
+            <div class="flex items-center gap-2 text-sm text-slate-500">
+                <a href="parentdashboard.php" class="inline-flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white hover:text-slate-700">
+                    <i class="fa fa-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <span class="text-slate-300">/</span>
+                <a href="childDetails.php" class="inline-flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white hover:text-slate-700">
+                    <i class="fa fa-child"></i>
+                    <span>Children</span>
+                </a>
+                <span class="text-slate-300">/</span>
+                <span class="text-slate-700">Edit</span>
+            </div>
+
+            <h2 class="mt-2 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Edit Child</h2>
+            <p class="mt-1 text-sm text-slate-600">Update child details and vaccination status.</p>
         </div>
-        <a href="childDetails.php" class="btn btn-outline-primary" style="padding:8px 12px;">Back</a>
+
+        <div class="flex">
+            <a href="childDetails.php"
+               class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md active:translate-y-0">
+                Back
+            </a>
+        </div>
     </div>
 
-    <div class="cardBox">
-        <div class="formBox">
-            <form method="post">
-                <div style="margin-bottom:12px;">
-                    <label style="display:block; margin-bottom:6px;">Child Name</label>
-                    <input type="text" name="child_name" class="form-control" required value="<?= htmlspecialchars($child["child_name"] ?? "") ?>">
+    <?php if (isset($_GET["error"])): ?>
+        <div class="twFadeUp mb-4 rounded-2xl bg-rose-50 p-4 text-rose-800 ring-1 ring-rose-100">
+            <div class="flex items-start gap-3">
+                <div class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+                    <i class="fa fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-semibold">Missing fields</div>
+                    <div class="mt-1 text-sm">Please fill required fields.</div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Form Card -->
+    <div class="twFadeUp mx-auto max-w-2xl">
+        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-md sm:p-6">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-900">Child Information</h3>
+                    <p class="mt-1 text-sm text-slate-600">Keep details accurate for scheduling.</p>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100">
+                    <i class="fa fa-edit"></i>
+                </div>
+            </div>
+
+            <form method="post" class="mt-6 space-y-5">
+                <div>
+                    <label class="text-sm font-semibold text-slate-700">Child Name</label>
+                    <input type="text" name="child_name"
+                           class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                           required value="<?= htmlspecialchars($child["child_name"] ?? "") ?>">
                 </div>
 
-                <div style="margin-bottom:12px;">
-                    <label style="display:block; margin-bottom:6px;">Birth Date</label>
-                    <input type="date" name="birth_date" class="form-control" required value="<?= htmlspecialchars($child["birth_date"] ?? "") ?>">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Birth Date</label>
+                        <input type="date" name="birth_date"
+                               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                               required value="<?= htmlspecialchars($child["birth_date"] ?? "") ?>">
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700">Vaccination Status</label>
+                        <?php $vs = (string)($child["vaccination_status"] ?? "Pending"); ?>
+                        <select name="vaccination_status"
+                                class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <option value="Pending" <?= $vs === "Pending" ? "selected" : "" ?>>Pending</option>
+                            <option value="Up to date" <?= $vs === "Up to date" ? "selected" : "" ?>>Up to date</option>
+                            <option value="Completed" <?= $vs === "Completed" ? "selected" : "" ?>>Completed</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div style="margin-bottom:14px;">
-                    <label style="display:block; margin-bottom:6px;">Vaccination Status</label>
-                    <?php $vs = (string)($child["vaccination_status"] ?? "Pending"); ?>
-                    <select name="vaccination_status" class="form-control">
-                        <option value="Pending" <?= $vs === "Pending" ? "selected" : "" ?>>Pending</option>
-                        <option value="Up to date" <?= $vs === "Up to date" ? "selected" : "" ?>>Up to date</option>
-                        <option value="Completed" <?= $vs === "Completed" ? "selected" : "" ?>>Completed</option>
-                    </select>
-                </div>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button type="submit" name="save_child"
+                            class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]">
+                        Save Changes
+                    </button>
 
-                <button type="submit" name="save_child" class="btn btn-primary" style="padding:10px 14px;">
-                    Save Changes
-                </button>
+                    <a href="childDetails.php"
+                       class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-[0.99]">
+                        Cancel
+                    </a>
+
+                    <div class="sm:ml-auto text-xs text-slate-500">
+                        Child ID: #<?= (int)$childId ?>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
